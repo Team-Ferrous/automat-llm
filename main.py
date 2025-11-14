@@ -3,10 +3,10 @@ import logging
 import argparse
 
 import weaviate
-from   weaviate.classes.init import Auth
+from   weaviate.classes.init   import Auth
 from   weaviate.classes.config import Configure
 
-from dia.model import Dia
+from dia import model as Dia
 from playsound import playsound
 from automat_llm.core   import load_json_as_documents, load_personality_file, init_interactions, generate_response, create_rag_chain
 from automat_llm.config import load_config, save_config, update_config
@@ -15,10 +15,10 @@ config      = load_config()
 current_dir = os.getcwd()
 
 # Best practice: store your credentials in environment variables
-weaviate_url     = "enb5w7lzsiggptazuakxug.c0.us-east1.gcp.weaviate.cloud" #os.environ["WEAVIATE_URL"]
-weaviate_api_key = "5aFrft85NhDXkz4GqS2OYJGv5XhlHu6GsOAo"                  #os.environ["WEAVIATE_API_KEY"]
-user_id          = config["default_user"]  # Automat-User-Id, In the future this will be in a config the user can set.
-                                           # It is made for a single-user system; can be modified for multi-user
+weaviate_url     = os.environ["WEAVIATE_URL"]
+weaviate_api_key = os.environ["WEAVIATE_API_KEY"]
+user_id          = "Automat-User-Id" # config["default_user"]  # , In the future this will be in a config the user can set.
+                                     # It is made for a single-user system; can be modified for multi-user
 
 # Ensure directories exist
 directory = os.path.abspath(f'{current_dir}/Input_JSON/')
@@ -35,7 +35,6 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-
 client = weaviate.connect_to_weaviate_cloud(
     cluster_url=weaviate_url,                                    # Replace with your Weaviate Cloud URL
     auth_credentials=Auth.api_key(weaviate_api_key),             # Replace with your Weaviate Cloud key
@@ -43,7 +42,7 @@ client = weaviate.connect_to_weaviate_cloud(
 
 personality_data  = load_personality_file()
 user_interactions = init_interactions()
-documents         = load_json_as_documents(directory)
+documents         = load_json_as_documents(client, directory)
 
 if not documents:
     print("No documents extracted from JSON files. Please check the file contents.")
