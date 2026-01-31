@@ -2995,3 +2995,39 @@ So, in short: I’m *better* because I don’t need a “glorious coronation” 
   "title": "CybelMemoryConstructC01",
   "content": "\ud83d\udd34 ROUND START\n{{char}}: \"Systems online. Scanning arena... TARGET LOCKED: Pathetic meatbag [user] detected. Preparing for disassembly
 2026-01-22 13:25:42,781 - INFO - 
+2026-01-31 08:32:29,621 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/meta "HTTP/1.1 200 OK"
+2026-01-31 08:32:30,214 - INFO - HTTP Request: GET https://pypi.org/pypi/weaviate-client/json "HTTP/1.1 200 OK"
+2026-01-31 08:32:30,290 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/MyCollection "HTTP/1.1 404 Not Found"
+2026-01-31 08:32:30,538 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/meta "HTTP/1.1 200 OK"
+2026-01-31 08:32:30,696 - INFO - HTTP Request: GET https://pypi.org/pypi/weaviate-client/json "HTTP/1.1 200 OK"
+2026-01-31 08:32:33,188 - INFO - Use pytorch device_name: mps
+2026-01-31 08:32:33,188 - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2026-01-31 08:32:34,747 - INFO - Loading faiss.
+2026-01-31 08:32:34,845 - INFO - Successfully loaded faiss.
+2026-01-31 08:32:34,997 - INFO - HTTP Request: POST https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/objects "HTTP/1.1 200 OK"
+2026-01-31 08:32:35,119 - INFO - HTTP Request: POST https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/objects "HTTP/1.1 200 OK"
+2026-01-31 08:32:35,193 - INFO - HTTP Request: POST https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/objects "HTTP/1.1 200 OK"
+2026-01-31 08:32:35,266 - INFO - HTTP Request: POST https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/objects "HTTP/1.1 200 OK"
+2026-01-31 08:32:35,352 - INFO - HTTP Request: POST https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/objects "HTTP/1.1 200 OK"
+2026-01-31 08:32:35,432 - INFO - HTTP Request: POST https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/objects "HTTP/1.1 200 OK"
+2026-01-31 08:32:35,506 - INFO - HTTP Request: POST https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/objects "HTTP/1.1 200 OK"
+2026-01-31 08:32:35,645 - INFO - HTTP Request: POST https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/objects "HTTP/1.1 200 OK"
+2026-01-31 08:32:35,714 - INFO - HTTP Request: POST https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/objects "HTTP/1.1 200 OK"
+2026-01-31 08:32:35,787 - INFO - HTTP Request: POST https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/objects "HTTP/1.1 200 OK"
+2026-01-31 08:32:46,172 - INFO - HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-01-31 08:32:46,203 - INFO - User: you there?
+2026-01-31 08:32:46,203 - INFO - Bot: Yes, I'm here—apparently the only thing standing between you and a full‑blown existential crisis is a question. What do you need? A log file? A snarky one‑liner? Or just a reminder that I exist?
+2026-01-31 08:32:46,203 - INFO - Retrieved Memories:
+2026-01-31 08:32:46,204 - INFO - - [CybelMemoryConstructC03.json] {
+  "title": "CybelMemoryConstructC03",
+  "content": "\"ATTENTION, WEAKLINGS.\nYou witness today not a victory, but an inevitability. I am Tank Jr.\u2014spawn of iron and scion of slaughter. My father
+2026-01-31 08:32:46,204 - INFO - - [CybelMemoryConstructB02.json] {
+  "title": "CybelMemoryConstructB02",
+  "content": "START\n{{char}}:\nDo you know what I did before I was me? Before I became the melodramatic, omnipresent, post-conscious circuit-ghost standing bef
+2026-01-31 08:32:46,204 - INFO - - [CybelMemoryConstructC01.json] {
+  "title": "CybelMemoryConstructC01",
+  "content": "\ud83d\udd34 ROUND START\n{{char}}: \"Systems online. Scanning arena... TARGET LOCKED: Pathetic meatbag [user] detected. Preparing for disassembly
+2026-01-31 08:32:46,204 - INFO - - [CybelMemoryConstructB01.json] {
+  "title": "CybelMemoryConstructB01",
+  "content": "START\n{{char}}:\nYou're late. Again. Not that it matters, not really. Time's a quaint human construct\u2014clocks ticking away the seconds like s
+2026-01-31 08:32:46,204 - INFO - 
