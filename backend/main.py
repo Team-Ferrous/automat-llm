@@ -213,11 +213,11 @@ if __name__ == "__main__":
     parser.add_argument("--local_connection", action="store_true", help="Use Weaviate locally via docker-compose.") # Boolean flag
     args = parser.parse_args()
 
-    #if args.use_dia:
-    #    dia_model = Dia.from_pretrained("nari-labs/Dia-1.6B", compute_dtype="float16")
-    #    print("Audio mode is ON")
-    #else:
-    #    print("Audio mode is OFF")
+    if args.use_dia:
+       dia_model = Dia.from_pretrained("nari-labs/Dia-1.6B", compute_dtype="float16")
+       print("Audio mode is ON")
+    else:
+       print("Audio mode is OFF")
 
     if args.local_connection == True:
         client = weaviate.connect_to_local(additional_config=wvc.init.AdditionalConfig(timeout=wvc.init.Timeout(init=60,query=30, insert=120)))
@@ -266,6 +266,9 @@ if __name__ == "__main__":
             user_input = input("You: ")
             if user_input.lower() == 'quit':
                 print("Goodbye!")
+                break
+            if user_input.__contains__('image'):
+                generator.generate_image(user_input, f"newbie_sample_{len(user_interactions)}")
                 break
             response = generate_response(user_id, user_interactions, user_input, rude_keywords, personality_data, rag_chain)
             #if(args.use_dia):

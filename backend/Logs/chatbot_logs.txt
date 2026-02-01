@@ -4314,3 +4314,30 @@ Bot: Sure thing, Omar—I'll make a note of it in my *vast* memory bank. (Just k
 2026-01-31 10:43:14,348 - INFO - - [past conversation] User: hi Cybel my name is Omar, Can you remember it>
 Bot: Sure thing, Omar—I'll make a note of it in my *vast* memory bank. (Just kidding, I only remember it for the duration of this chat. If you need
 2026-01-31 10:43:14,348 - INFO - 
+2026-01-31 10:52:12,076 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/SampleData "HTTP/1.1 200 OK"
+2026-01-31 10:52:12,192 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/nodes "HTTP/1.1 200 OK"
+2026-01-31 10:52:19,672 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/meta "HTTP/1.1 200 OK"
+2026-01-31 10:52:20,071 - INFO - HTTP Request: GET https://pypi.org/pypi/weaviate-client/json "HTTP/1.1 200 OK"
+2026-01-31 10:52:20,162 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/MyCollection "HTTP/1.1 404 Not Found"
+2026-01-31 10:52:23,209 - INFO - Use pytorch device_name: mps
+2026-01-31 10:52:23,209 - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2026-01-31 10:52:24,778 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/SampleData "HTTP/1.1 200 OK"
+2026-01-31 10:52:24,838 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/SampleData "HTTP/1.1 200 OK"
+2026-01-31 11:08:37,869 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/meta "HTTP/1.1 200 OK"
+2026-01-31 11:08:38,509 - INFO - HTTP Request: GET https://pypi.org/pypi/weaviate-client/json "HTTP/1.1 200 OK"
+2026-01-31 11:08:38,596 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/MyCollection "HTTP/1.1 404 Not Found"
+2026-01-31 11:08:41,434 - INFO - Use pytorch device_name: mps
+2026-01-31 11:08:41,435 - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2026-01-31 11:08:43,053 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/SampleData "HTTP/1.1 200 OK"
+2026-01-31 11:08:43,115 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/SampleData "HTTP/1.1 200 OK"
+2026-01-31 11:09:01,976 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/SampleData "HTTP/1.1 200 OK"
+2026-01-31 11:09:02,037 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/nodes "HTTP/1.1 200 OK"
+2026-01-31 11:10:02,275 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/meta "HTTP/1.1 200 OK"
+2026-01-31 11:10:02,449 - INFO - HTTP Request: GET https://pypi.org/pypi/weaviate-client/json "HTTP/1.1 200 OK"
+2026-01-31 11:10:02,531 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/MyCollection "HTTP/1.1 404 Not Found"
+2026-01-31 11:10:05,264 - INFO - Use pytorch device_name: mps
+2026-01-31 11:10:05,264 - INFO - Load pretrained SentenceTransformer: sentence-transformers/all-MiniLM-L6-v2
+2026-01-31 11:10:06,603 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/SampleData "HTTP/1.1 200 OK"
+2026-01-31 11:10:06,664 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/SampleData "HTTP/1.1 200 OK"
+2026-01-31 14:05:44,313 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/schema/SampleData "HTTP/1.1 200 OK"
+2026-01-31 14:05:44,385 - INFO - HTTP Request: GET https://zlczjvseriduchvtb9twa.c0.us-west3.gcp.weaviate.cloud/v1/nodes "HTTP/1.1 200 OK"
