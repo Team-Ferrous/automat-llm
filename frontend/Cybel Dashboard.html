@@ -244,7 +244,7 @@
                     <!-- Messages (Scrollable) -->
                     <div id="chat-history" class="flex-1 overflow-y-auto p-6 space-y-6">
                         <div class="flex gap-4">
-                            <div class="w-16 h-16 rounded-full bg-cyan-900/50 flex items-center justify-center border border-cyan-500/30 flex-shrink-0">
+                            <div class="w-8 h-8 rounded-full bg-cyan-900/50 flex items-center justify-center border border-cyan-500/30 flex-shrink-0">
                                 <img
                                     src="./assets/image2.png"
                                     alt="AI Avatar"
@@ -793,7 +793,11 @@
             history.insertAdjacentHTML('beforeend', `
                 <div id="${thinkingId}" class="flex gap-4">
                     <div class="w-8 h-8 rounded-full bg-cyan-900/50 flex items-center justify-center border border-cyan-500/30">
-                        <i data-lucide="bot" class="w-4 h-4 text-cyan-400"></i>
+                        <img
+                                    src="./assets/image2.png"
+                                    alt="AI Avatar"
+                                    class="w-full h-full object-cover"
+                        />
                     </div>
                     <div class="bg-black/60 border border-cyan-500/30 p-4 rounded-lg rounded-tl-none max-w-[80%]">
                         <p class="text-cyan-300 text-sm font-mono animate-pulse">Processing…</p>
@@ -817,7 +821,11 @@
                 document.getElementById(thinkingId).outerHTML = `
                     <div class="flex gap-4">
                         <div class="w-8 h-8 rounded-full bg-cyan-900/50 flex items-center justify-center border border-cyan-500/30">
-                            <i data-lucide="bot" class="w-4 h-4 text-cyan-400"></i>
+                            <img
+                                    src="./assets/image2.png"
+                                    alt="AI Avatar"
+                                    class="w-full h-full object-cover"
+                            />
                         </div>
                         <div class="bg-black/60 border border-cyan-500/30 p-4 rounded-lg rounded-tl-none shadow-lg max-w-[80%]">
                             <p class="text-cyan-100 text-sm leading-relaxed">${data.response}</p>

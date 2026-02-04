@@ -77,7 +77,7 @@ def upload_logs_to_weaviate(client, log_filepath: str, state_file: str = "upload
         with open(log_filepath, 'r', encoding='utf-8', errors='replace') as f:
             lines = f.readlines()
         
-        total_lines = len(lines)  # ✅ Get total line count
+        total_lines = len(lines)  
         
         # Only process lines after the last position
         new_lines = lines[last_position:]
@@ -113,7 +113,7 @@ def upload_logs_to_weaviate(client, log_filepath: str, state_file: str = "upload
         
         if not conversations:
             print("No new complete conversations found.")
-            # ✅ STILL update the state file to mark these lines as processed
+
             with open(state_file, 'w') as f:
                 json.dump({'last_line': total_lines}, f)
             return
@@ -141,7 +141,7 @@ Bot: {conv['bot_response']}"""
                 )
                 uploaded_count += 1
         
-        # ✅ Save the TOTAL line count, not just len(lines) which equals total_lines
+
         with open(state_file, 'w') as f:
             json.dump({'last_line': total_lines}, f)
         
@@ -169,7 +169,7 @@ def check_weaviate_contents(client):
         
         if total > 0:
             # Fetch first 5 objects to see what they look like
-            print(f"\n📄 Sample objects:")
+            print(f"\n Sample objects:")
             for i, item in enumerate(collection.iterator()):
                 if i >= 5: break
                 print(f"\nObject {i+1}:")
@@ -179,7 +179,7 @@ def check_weaviate_contents(client):
             print("\n⚠️  Collection is empty!")
             
     except Exception as e:
-        print(f"❌ Error checking Weaviate: {e}")
+        print(f"Error checking Weaviate: {e}")
         import traceback
         traceback.print_exc()
 
