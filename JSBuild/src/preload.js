@@ -13,20 +13,12 @@ contextBridge.exposeInMainWorld("api", {
 window.addEventListener("DOMContentLoaded", () => {
   // nothing here yet
 })
-async function loadSelectedModel() {
-    const path = document.getElementById("model-path").value;
-    if (!path) {
-        showModal("Model Error", "No model path specified.");
-        return;
-    }
 
-    showModal("Engine", "Loading model...");
-
-    try {
-        await window.api.loadModel(path);
-        showModal("Engine Online", "Model successfully loaded.");
-    } catch (err) {
-        showModal("Load Failed", err.message);
-    }
-}
+session.prompt({
+    messages: [
+        { role: "system", content: "You are CYBEL CORE." },
+        ...chatHistory,
+        { role: "user", content: message }
+    ]
+});
 
