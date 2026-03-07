@@ -47,6 +47,9 @@ const hashPath  = path.join(__dirname, "doc_hash.txt");
 
 if (!fs.existsSync(inputDir)) fs.mkdirSync(inputDir, { recursive: true });
 if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+const index = new faiss.IndexFlatL2(embeddingDim);
+
+
 
 //----------------------------
 // Utility & Engine Functions
@@ -302,18 +305,17 @@ async function initialize() {
 
         // ✅ Only one FAISS index and one add
         // embeddings: Array of Float32Array
+        // Add embeddings
         const arrayEmbeddings = embeddings.map(vec => Array.from(vec)); // number[][]
-        embeddingIndex = new faiss.IndexFlatL2(embeddingDim);
+        arrayEmbeddings.forEach(vec => index.add(vec)); // add one by one
 
-        // If your Node.js FAISS binding requires adding vectors one by one:
-        arrayEmbeddings.forEach((vec, i) => embeddingIndex.add(vec));
 
         // If your binding supports batch add, you could just do:
-        // embeddingIndex.add(arrayEmbeddings);
-        //embeddingIndex.writeIndex(indexPath); //not a real function
+        // index.add(arrayEmbeddings);
+        // Save the index for later
+        index.write(indexPath);
         fs.writeFileSync(metaPath, JSON.stringify(docs));
         fs.writeFileSync(hashPath, currentHash);
-
         console.log(`✅ FAISS index built with ${docs.length} documents.`);
     } catch (err) {
         console.error("Initialization failed:", err);
