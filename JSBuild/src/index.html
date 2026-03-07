@@ -12,19 +12,146 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script>
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById("chatInput").value;
-            window.api.sendMessage(input);
+            try {
+                const response = await window.api.sendMessage(input);
+                if (response === "IMAGE_DONE") {
+                    console.log("Image generated!");
+                    return;
+                }
+
+                console.log("Bot:", response);
+                // Update UI here
+            } catch (err) {
+                console.error("Error:", err);
+            }
+        }
+        document.querySelectorAll("input[type='range']").forEach(slider => {
+        slider.addEventListener("input", (e) => {
+            const value = e.target.value;
+
+            if (e.target.name === "temperature") {
+                window.api.setTemperature({ temperature: parseFloat(value) });
+            }
+
+            if (e.target.name === "contextWindowKey") {
+                window.api.setContextWindowKey({ temperature: parseFloat(value) });
+            }
+
+            if (e.target.name === "context") {
+                window.api.updateEngine({ contextWindow: parseInt(value) });
+            }
+        });
+    });
+
+   function loadAppearance() {
+    const stored = localStorage.getItem("appearanceConfig");
+    if (!stored) return;
+
+    const { accent, theme, background } = JSON.parse(stored);
+
+    // Apply accent
+    if (accent) document.documentElement.style.setProperty('--accent', accent);
+
+    // Apply theme
+    if (theme) document.body.dataset.theme = theme;
+    function switchBG(type) {
+            // Clean previous
+            if (currentBG?.cleanup) {
+                currentBG.cleanup();
+                currentBG = null;
+            }
+            const accent = getComputedStyle(document.documentElement)
+                .getPropertyValue('--accent')
+                .trim();
+            switch (type) {
+                case "Orbital View (3D)":
+                    currentBG = initChatBackground();
+                    currentBG.setAccent(accent);
+                    break;
+
+                case "Neural Network (3D)":
+                    currentBG = initCircuitBackground();
+                    currentBG.setAccent(accent);
+                    break;
+
+                case "Code Rain (Matrix)":
+                    currentBG = initBotBackground();
+                    currentBG.setAccent(accent);
+                    break;
+
+                case "Solid Black (Perf)":
+                    //document.body.style.background = "#000";
+                    currentBG.cleanup()
+                    break;
+
+                case "Custom":
+                    currentBG = initImageBackground(file);
+            }
         }
 
-        window.api.onResponse((response) => {
-            console.log("Bot:", response);
-            // Update UI here
-        });
+ 
+                    const avatarImage = document.getElementById("avatarImage");
+                    const colorSwatches = document.querySelectorAll('[data-color]');
+                    colorSwatches.forEach(swatch => {
+                    swatch.addEventListener("click", () => {
+                            const color = swatch.dataset.color;
+                            document.documentElement.style.setProperty("--accent", color);
+                            const bgSelectS = document.getElementById('bgSelector');
+                            switchBG(bgSelectS.value)
 
-        window.api.onImageDone(() => {
-            console.log("Image generated!");
-        });
+                            // update selected ring
+                            colorSwatches.forEach(s => 
+                            s.classList.remove("ring-4", "ring-white")
+                            );
+                            swatch.classList.add("ring-4", "ring-white");
+                        });
+                    });
+            // Apply background
+            const bgSelect = document.getElementById('bgSelector'); // <-- define it
+            if (background && bgSelect) {
+                bgSelect.value = background;
+                switchBG(background); // your existing function
+            }
+
+            // Make inline body styles match
+            document.body.style.backgroundColor = getComputedStyle(document.body)
+                                                    .getPropertyValue('--bg-primary');
+            document.body.style.color = getComputedStyle(document.body)
+                                            .getPropertyValue('--text-primary');
+        }
+
+        // Run after DOM is ready
+        document.addEventListener("DOMContentLoaded", loadAppearance);
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll("[data-action]").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const action = btn.dataset.action;
+                const files = await ipcRenderer.invoke("open-file-dialog");
+                if (!files || files.length === 0) return;
+                console.log(action, files);
+                });
+            });
+
+            document.querySelector("#saveBtn").addEventListener("click", async () => {
+                const files = await window.api.saveFileDialog();
+                console.log(files);
+            });
+
+            document.querySelector("#loadBtn").addEventListener("click", async () => {
+                  const files = await window.api.openFileDialog();
+                    if (!files || files.length === 0) return;
+
+                    const instanceId = "default"; // or let the user select/create an instance
+                    const result = await window.api.ingestDocuments(instanceId, files);
+                    if (result.success) {
+                        console.log(`Ingested ${result.ingested} chunks into instance ${instanceId}`);
+                    } else {
+                        console.error("Ingestion failed:", result.message);
+                    }
+            });
+        })
     </script>
 
     <style>
@@ -87,11 +214,36 @@
             --primary-cyan: #06b6d4;
             --primary-gold: #f59e0b;
             --matrix-green: #00FF41;
+            --accent: #06b6d4;
+            --bg: #000000;
             --bg-dark: #050505;
             --glass-bg: rgba(10, 10, 15, 0.65);
-            --glass-border: rgba(6, 182, 212, 0.3);
+            --glass-border: var(--accent); /*rgba(6, 182, 212, 0.3)*/;
         }
-
+        .text-accent { color: var(--accent);          }
+        .bg-accent { background-color: var(--accent); }
+        .border-accent { border-color: var(--accent); }
+        .toast {
+            position: fixed;
+            bottom: 2rem;          /* start near bottom */
+            left: 50%;             /* center horizontally */
+            transform: translateX(-50%) translateY(100%); /* start below the screen */
+            background-color: var(--accent);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-family: monospace;
+            font-size: 0.875rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.4s ease, opacity 0.4s ease;
+            z-index: 9999;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0); /* slide up into view */
+            opacity: 1;
+        }
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-dark);
@@ -118,7 +270,7 @@
         /* Navigation */
         .active-nav {
             background: rgba(6, 182, 212, 0.15);
-            border-left: 4px solid var(--primary-cyan);
+            border-left: 4px solid var(--accent);  /* var(--primary-cyan);*/
             color: #fff;
             box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
         }
@@ -158,7 +310,7 @@
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
-            background: #fff; margin-top: -6px; box-shadow: 0 0 10px rgba(6,182,212,0.8); cursor: pointer;
+            background: #fff; margin-top: -6px; box-shadow: 0 0 10px var(--accent); cursor: pointer;
         }
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%; height: 4px; cursor: pointer; background: #164e63; border-radius: 2px;
@@ -178,25 +330,41 @@
             transition: all 0.2s;
         }
         .type-card.selected {
-            border-color: var(--primary-cyan);
+            border-color: var(--accent);    
             background: rgba(6, 182, 212, 0.1);
             box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
         }
-    </style>
+        body[data-theme="light"] {
+            --bg-primary: #ffffff;
+            --text-primary: #000000;
+            }
+        body[data-theme="dark"] {
+            --bg-primary: #000000;
+            --text-primary: #ffffff;
+        }
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s; /* optional smooth switch */
+        }
+        .bg-canvas-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+        }
+    </style><!-- --primary-cyan);-->
 </head>
-<body class="h-screen w-screen flex flex-col md:flex-row relative">
-
+<body style="background-color: var(--bg-primary); color: var(--text-primary);" class="h-screen w-screen flex flex-col md:flex-row relative">
     <!-- Global Scanline Overlay -->
     <div class="scanline-overlay"></div>
 
     <!-- 1. Custom Alert Modal -->
-    <div id="custom-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden opacity-0 modal-backdrop">
+    <div id="custom-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-accent/80 backdrop-blur-sm hidden opacity-0 modal-backdrop">
         <div class="glass-panel rounded-xl p-8 max-w-md w-full text-center transform scale-95 modal-content border-amber-500/50 shadow-[0_0_50px_rgba(245,158,11,0.2)]">
             <div class="text-amber-400 mb-4 flex justify-center">
                 <i data-lucide="terminal" class="w-12 h-12"></i>
             </div>
             <h3 id="modal-title" class="text-2xl font-bold text-white mb-2">SYSTEM ALERT</h3>
-            <p id="modal-message" class="text-cyan-200 mb-6">Operation confirmed.</p>
+            <p id="modal-message" class="text-accent mb-6">Operation confirmed.</p>
             <button onclick="closeModal('custom-modal')" class="px-6 py-2 bg-amber-600 hover:bg-amber-500 text-black font-bold rounded-lg transition-colors w-full">
                 ACKNOWLEDGE
             </button>
@@ -204,10 +372,10 @@
     </div>
 
     <!-- 2. Create Bot Modal -->
-    <div id="create-bot-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden opacity-0 modal-backdrop">
-        <div class="glass-panel rounded-xl p-8 max-w-lg w-full transform scale-95 modal-content border-cyan-500/50 shadow-[0_0_50px_rgba(6,182,212,0.3)]">
-            <div class="flex justify-between items-center mb-6 border-b border-cyan-900/50 pb-4">
-                <h3 class="text-2xl font-bold text-cyan-400">Initialize New Instance</h3>
+    <div id="create-bot-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-accent/80 backdrop-blur-sm hidden opacity-0 modal-backdrop">
+        <div class="glass-panel rounded-xl p-8 max-w-lg w-full transform scale-95 modal-content border-accent/50 shadow-[0_0_50px_rgba(6,182,212,0.3)]">
+            <div class="flex justify-between items-center mb-6 border-b border-accent/50 pb-4">
+                <h3 class="text-2xl font-bold text-accent">Initialize New Instance</h3>
                 <button onclick="closeModal('create-bot-modal')" class="text-gray-400 hover:text-white">
                     <i data-lucide="x"></i>
                 </button>
@@ -215,25 +383,32 @@
 
             <div class="space-y-6">
                 <div>
-                    <label class="block text-sm text-cyan-300 mb-2 font-mono">INSTANCE DESIGNATION</label>
-                    <input type="text" id="new-bot-name" class="w-full bg-black/50 border border-cyan-700 rounded-lg p-3 text-white focus:border-cyan-400 focus:outline-none" placeholder="e.g. Assistant_v3">
-                </div>
-
+                    <label class="block text-sm text-accent mb-2 font-mono">INSTANCE DESIGNATION</label>
+                    <input type="text" id="new-bot-name" class="w-full text-accent border border-accent rounded-lg p-3 text-accent  focus:border-accent focus:outline-none" placeholder="e.g. Assistant_v3">
+                </div>      
                 <div>
-                    <label class="block text-sm text-cyan-300 mb-2 font-mono">COGNITIVE ARCHITECTURE</label>
+                    <label class="bg-black-500 block text-sm text-accent mb-2 font-mono">TOOL PRESET</label>
+                    <select id="character-selector" class="w-full bg-black-500 border border-accent rounded p-2 bg-black-500 text-sm">
+                        <option>SearchEngineOps</option>
+                        <option>ResearchOps</option>
+                        <option>CallCathex</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-accent mb-2 font-mono">COGNITIVE ARCHITECTURE</label>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div onclick="selectBotType('character')" id="type-character" class="type-card p-4 rounded-lg cursor-pointer hover:bg-black/40">
+                        <div onclick="selectBotType('character')" id="type-character" class="type-card p-4 rounded-lg cursor-pointer hover:bg-accent/40">
                             <h4 class="text-lg font-bold text-amber-400 mb-1">Character</h4>
                             <p class="text-xs text-gray-400">Roleplay enabled. The AI adopts a specific persona, backstory, and will.</p>
                         </div>
-                        <div onclick="selectBotType('agent')" id="type-agent" class="type-card p-4 rounded-lg cursor-pointer hover:bg-black/40">
-                            <h4 class="text-lg font-bold text-cyan-400 mb-1">Agent</h4>
+                        <div onclick="selectBotType('agent')" id="type-agent" class="type-card p-4 rounded-lg cursor-pointer hover:bg-accent40">
+                            <h4 class="text-lg font-bold text-accent mb-1">Agent</h4>
                             <p class="text-xs text-gray-400">Utility mode. Direct, factual responses without simulated personality.</p>
                         </div>
                     </div>
                 </div>
 
-                <button onclick="confirmCreateBot()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg shadow-lg shadow-cyan-900/50 transition-all">
+                <button onclick="confirmCreateBot()" class="w-full py-3 bg-accent hover:bg-accent text-white font-bold rounded-lg shadow-lg shadow-cyan-900/50 transition-all">
                     INITIALIZE INSTANCE
                 </button>
             </div>
@@ -241,12 +416,15 @@
     </div>
 
     <!-- Sidebar Navigation -->
-    <nav class="w-full md:w-64 glass-panel z-50 flex flex-col border-r border-cyan-900/50 flex-shrink-0 bg-black/90">
-        <div class="p-6 border-b border-cyan-900/50">
-            <h1 class="text-2xl font-extrabold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
-                AUTOMAT
+    <nav class="w-full md:w-64 glass-panel z-50 flex flex-col border-r border-accent/50 flex-shrink-0 bg-accent/90">
+        <div class="p-6 border-b border-accent/50">
+        <h1 class="text-2xl font-extrabold tracking-tighter 
+        text-transparent bg-clip-text
+        bg-gradient-to-r
+        from-[var(--accent)]
+        to-white">                AUTOMAT
             </h1>
-            <p class="text-xs text-cyan-700 font-mono tracking-widest mt-1">SYSTEM V2.4.1</p>
+            <p class="text-xs text-accent font-mono tracking-widest mt-1">SYSTEM V2.4.1</p>
         </div>
 
         <div class="flex-1 overflow-y-auto py-4 space-y-1">
@@ -258,10 +436,10 @@
                 <i data-lucide="wrench" class="w-5 h-5"></i>
                 <span class="font-semibold">System Options</span>
             </button>
-            <button onclick="switchTab('creative')" id="nav-creative" class="w-full text-left px-6 py-3 flex items-center gap-3 transition-all inactive-nav">
+           <!--<button onclick="switchTab('creative')" id="nav-creative" class="w-full text-left px-6 py-3 flex items-center gap-3 transition-all inactive-nav">
                 <i data-lucide="sparkles" class="w-5 h-5"></i>
                 <span class="font-semibold">Creative Mode</span>
-            </button>
+            </button>-->
             <button onclick="switchTab('engine')" id="nav-engine" class="w-full text-left px-6 py-3 flex items-center gap-3 transition-all inactive-nav">
                 <i data-lucide="cpu" class="w-5 h-5"></i>
                 <span class="font-semibold">Engine Config</span>
@@ -276,13 +454,13 @@
             </button>
         </div>
 
-        <div class="p-4 border-t border-cyan-900/50 text-xs text-cyan-700 font-mono text-center">
+        <div class="p-4 border-t border-accent/50 text-xs text-accent font-mono text-center">
             ID: A-387-CYB <br> STATUS: ONLINE
         </div>
     </nav>
 
     <!-- Main Content Area -->
-    <main class="flex-1 relative z-10 overflow-hidden flex flex-col bg-black/50">
+    <main class="flex-1 relative z-10 overflow-hidden flex flex-col bg-accent/50">
         
         <!-- MODULE 1: CHAT INTERFACE (Shortened, with Globe) -->
         <section id="module-chat" class="module-section active flex-col h-full w-full relative overflow-hidden">
@@ -292,21 +470,21 @@
 
             <!-- Floating Chat Container -->
             <div class="relative z-10 flex-1 flex items-end justify-center p-24">
-                <div class="w-full max-w-6xl glass-panel rounded-2xl overflow-hidden bg-black/70 flex flex-col" style="max-height: 500px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+                <div class="w-full max-w-6xl glass-panel rounded-2xl overflow-hidden bg-accent/70 flex flex-col" style="max-height: 500px; background-color: var(--bg-primary); color: var(--text-primary); box-shadow: 0 20px 50px var(--bg-primary);">
                     
                     <!-- Header -->
-                    <div class="p-4 border-b border-cyan-900/50 flex justify-between items-center bg-black/60 flex-shrink-0">
+                    <div class="p-4 border-b border-accent/50 flex justify-between items-center bg-accent/60 flex-shrink-0">
                         <div class="flex items-center gap-3">
                             <div class="relative">
-                                <div class="w-3 h-3 bg-cyan-400 rounded-full animate-ping absolute opacity-75"></div>
-                                <div class="w-3 h-3 bg-cyan-500 rounded-full relative"></div>
+                                <div class="w-3 h-3 bg-accent rounded-full animate-ping absolute opacity-75"></div>
+                                <div class="w-3 h-3 bg-accent rounded-full relative"></div>
                             </div>
                             <div>
-                                <h2 class="font-bold text-cyan-100">CYBEL CORE</h2>
-                                <p class="text-[10px] text-cyan-600 font-mono tracking-widest">HOLOGRAPHIC LINK ACTIVE</p>
+                                <h2 class="font-bold  text-accent">CYBEL CORE</h2>
+                                <p class="text-[10px] text-accent font-mono tracking-widest">HOLOGRAPHIC LINK ACTIVE</p>
                             </div>
                         </div>
-                        <div class="flex gap-4 text-cyan-600">
+                        <div class="flex gap-4 text-accent">
                             <i data-lucide="activity" class="w-5 h-5 animate-pulse"></i>
                             <i data-lucide="shield-check" class="w-5 h-5"></i>
                         </div>
@@ -314,46 +492,47 @@
 
                     <!-- Messages (Scrollable) -->
                     <div id="chat-history" class="flex-1 overflow-y-auto p-6 space-y-6">
-                        <div class="flex gap-4">
-                            <div class="w-8 h-8 rounded-full bg-cyan-900/50 flex items-center justify-center border border-cyan-500/30 flex-shrink-0">
+                        <!--<div class="flex gap-4">
+                            <div class="w-8 h-8 rounded-full overflow-hidden bg-accent/50 flex items-center justify-center border border-accent/30 flex-shrink-0">
                                 <img
-                                    src="./assets/image2.png"
+                                    id="avatarImage"
+                                    src="./assets/avatar_blue.png"
                                     alt="AI Avatar"
                                     class="w-full h-full object-cover"
                                 />
                             </div>
-                            <div class="bg-black/60 border border-cyan-500/30 p-4 rounded-lg rounded-tl-none shadow-lg max-w-[80%] backdrop-blur-sm">
-                                <p class="text-cyan-100 text-sm leading-relaxed">
+                            <div class="bg-accent/60 border border-accent/30 p-4 rounded-lg rounded-tl-none shadow-lg max-w-[80%] backdrop-blur-sm">
+                                <p class="text-accent text-sm leading-relaxed">
                                     Holographic projection initialized. I am ready to receive your queries through the neural link.
                                 </p>
                             </div>
-                        </div>
+                        </div>-->
                     </div>
 
                     <!-- Input Area (File Attach + Input) -->
-                    <div class="p-4 bg-black/80 border-t border-cyan-900/50 flex-shrink-0">
+                    <div class="p-4 bg-accent/80 border-t border-accent/50 flex-shrink-0">
                         <input type="file" id="chat-file-input" class="hidden" onchange="handleFileUpload(this)">
                         
                         <form onsubmit="handleChatSubmit(event)" class="relative flex items-center gap-3">
                             <!-- Attach Button -->
-                            <button type="button" onclick="document.getElementById('chat-file-input').click()" class="p-2 hover:bg-cyan-900/50 rounded-md transition-colors text-cyan-600 hover:text-cyan-400" title="Attach File">
+                            <button type="button" onclick="document.getElementById('chat-file-input').click()" class="p-2 hover:text-accent/50 rounded-md transition-colors text-accent hover:text-cyan-400" title="Attach File">
                                 <i data-lucide="paperclip" class="w-5 h-5"></i>
                             </button>
                             
                             <div class="relative flex-1">
-                                <div class="absolute left-4 text-cyan-700 pointer-events-none">
+                                <div class="absolute left-4 text-accent pointer-events-none">
                                     <i data-lucide="terminal" class="w-4 h-11"></i>
                                 </div>
                                 <input type="text" id="chat-input" 
-                                    class="w-full bg-cyan-950/20 border border-cyan-800/50 rounded-lg py-3 pl-10 pr-12 text-cyan-100 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-mono text-sm"
+                                    class="w-full text-accent/20 border border-accent/50 rounded-lg py-3 pl-10 pr-12 text-accent focus:outline-none focus:border-accent focus:ring-1 focus:ring-cyan-500 transition-all font-mono text-sm"
                                     placeholder="Enter command or query..." autocomplete="off">
                             </div>
                             
-                            <button type="submit" class="p-2 bg-cyan-900/30 rounded-md hover:bg-cyan-600 hover:text-white text-cyan-400 transition-colors">
+                            <button type="submit" class="p-2 text-accent/30 rounded-md hover:bg-accent hover:text-white text-accent transition-colors">
                                 <i data-lucide="send" class="w-5 h-5"></i>
                             </button>
                         </form>
-                        <div class="mt-2 flex justify-between items-center text-[9px] text-cyan-800 tracking-[0.2em] uppercase">
+                        <div class="mt-2 flex justify-between items-center text-[9px] text-accent tracking-[0.2em] uppercase">
                             <span>Secure Channel // Encrypted</span>
                             <span>Latency: 12ms</span>
                         </div>
@@ -365,30 +544,91 @@
         <!-- MODULE 2: AUTOMAT OPTIONS (Restored) -->
         <section id="module-options" class="module-section flex-col h-full w-full p-4 md:p-8 overflow-y-auto">
             <div class="max-w-6xl mx-auto w-full space-y-6 relative z-10">
-                <div class="mb-8 border-b border-cyan-800 pb-4">
-                    <h2 class="text-3xl font-extrabold text-amber-400 flex items-center gap-3">
+                <div class="mb-8 border-b border-accent pb-4">
+                    <h2 class="text-3xl font-extrabold text-accent flex items-center gap-3">
                         <i data-lucide="wrench"></i> AUTOMAT OPTIONS
                     </h2>
                 </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- System Health -->
+                        <div class="glass-panel p-6 rounded-xl">
+                             <h3 class="text-lg font-bold text-accent mb-4 flex items-center gap-2">
+                            <i data-lucide="activity"></i> Model Initialization
+                            </h3>
+                            <select id="modeSelector" class="font-mono text-accent">
+                                <option class="text-amber-400" value="groq">Groq</option>
+                                <option class="text-amber-400" value="local">Local</option>
+                            </select>
+                        </div>
+                        <div class="glass-panel p-6 rounded-xl">
+                         <h3 class="text-lg font-bold text-accent mb-4 flex items-center gap-2">
+                            <i data-lucide="key-square"></i> Groq Key
+                        </h3>
+                        <br>
+                        <input 
+                            type="text" 
+                            id="groq-key-input"
+                            class="w-full bg-black-500 font-mono border border-accent/50 rounded-lg py-3 pl-10 pr-12 text-accent focus:outline-none focus:border-accent focus:ring-1 focus:ring-cyan-500 transition-all  text-sm"
+                            placeholder="Enter Groq Key" 
+                            autocomplete="off"
+                        />
+                        <button 
+                            id="groq-key-confirm"
+                            class="mt-4 px-4 py-2 bg-accent text-white rounded-lg hover:bg-cyan-600 transition"
+                        >
+                            Confirm
+                        </button>
+                    </div>
+                <script>
+                const input  = document.getElementById("groq-key-input");
+                const button = document.getElementById("groq-key-confirm");
+                function showToast(message) {
+                    const toast = document.createElement("div");
+                    toast.textContent = message;
+                    toast.className = "toast";
+                    document.body.appendChild(toast);
 
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 2000);
+                }
+                button.addEventListener("click", () => {
+                    const key = input.value.trim();
+                    if (!key) {
+                        showToast("Please enter a Groq key.");
+                        return;
+                    }
+
+                    // Example: store in localStorage
+                    localStorage.setItem("groqKey", key);
+
+                    // Or send to main process if Electron
+                    window.api.setGroqKey(key);
+                    showToast("Groq key saved!");
+                });
+
+                const storedKey = localStorage.getItem("groqKey");
+                if (storedKey) input.value = storedKey;
+                </script>
+                </div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <!-- System Health -->
                     <div class="glass-panel p-6 rounded-xl">
-                        <h3 class="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                        <h3 class="text-lg font-bold text-accent mb-4 flex items-center gap-2">
                             <i data-lucide="activity"></i> System Health
                         </h3>
                         <div class="space-y-4">
-                            <div class="flex justify-between text-sm border-b border-cyan-900/50 pb-2">
-                                <span class="text-cyan-200">Core Temp</span>
-                                <span id="stat-temp" class="font-mono text-green-400">35.5°C</span>
+                            <div class="flex justify-between text-sm border-b border-accent/50 pb-2">
+                                <span class="text-accent">Core Temp</span>
+                                <span id="stat-temp" class="font-mono text-green-400">--</span><!--35.5°C-->
                             </div>
-                            <div class="flex justify-between text-sm border-b border-cyan-900/50 pb-2">
-                                <span class="text-cyan-200">Latency</span>
-                                <span id="stat-latency" class="font-mono text-green-400">5ms</span>
+                            <div class="flex justify-between text-sm border-b border-accent/50 pb-2">
+                                <span class="text-accent">Latency</span>
+                                <span id="stat-latency" class="font-mono text-green-400">--</span><!--5ms-->
                             </div>
-                            <div class="flex justify-between text-sm border-b border-cyan-900/50 pb-2">
-                                <span class="text-cyan-200">Battery</span>
-                                <span id="stat-battery" class="font-mono text-green-400">88%</span>
+                            <div class="flex justify-between text-sm border-b border-accent/50 pb-2">
+                                <span class="text-accent">Battery</span>
+                                <span id="stat-battery" class="font-mono text-green-400">--</span><!--88%-->
                             </div>
                             <button onclick="showModal('Diagnostics', 'Running full diagnostic cycle...')" class="w-full mt-2 py-2 bg-amber-600/20 hover:bg-amber-600/40 text-amber-500 border border-amber-600/50 rounded text-xs font-bold transition-colors">
                                 RUN DIAGNOSTIC
@@ -398,23 +638,23 @@
 
                     <!-- Connectivity -->
                     <div class="glass-panel p-6 rounded-xl">
-                        <h3 class="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                        <h3 class="text-lg font-bold text-accent mb-4 flex items-center gap-2">
                             <i data-lucide="globe"></i> Connectivity
                         </h3>
                         <div class="space-y-4">
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-cyan-100">Wi-Fi Link</span>
-                                <button onclick="toggleSwitch(this)" class="w-10 h-5 bg-green-600 rounded-full relative transition-colors">
-                                    <span class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></span>
-                                </button>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm text-cyan-100">Bluetooth</span>
+                            <div disabled class="flex items-center justify-between">
+                                <span class="text-sm text-accent">Wi-Fi Link</span>
                                 <button onclick="toggleSwitch(this)" class="w-10 h-5 bg-gray-700 rounded-full relative transition-colors">
                                     <span class="absolute left-1 top-1 w-3 h-3 bg-white rounded-full"></span>
                                 </button>
                             </div>
-                            <div class="mt-4 p-3 bg-black/40 rounded border border-cyan-900 text-xs font-mono text-cyan-600">
+                            <div disabled class="flex items-center justify-between">
+                                <span class="text-sm text-accent">Bluetooth</span>
+                                <button onclick="toggleSwitch(this)" class="w-10 h-5 bg-gray-700 rounded-full relative transition-colors">
+                                    <span class="absolute left-1 top-1 w-3 h-3 bg-white rounded-full"></span>
+                                </button>
+                            </div>
+                            <div class="mt-4 p-3 bg-accent/40 rounded border border-accent text-xs font-mono text-accent">
                                 IP: 192.168.1.42<br>
                                 Signal: Strong (-42dBm)
                             </div>
@@ -423,21 +663,21 @@
 
                     <!-- Pilot Parameters -->
                     <div class="glass-panel p-6 rounded-xl">
-                        <h3 class="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                        <h3 class="text-lg font-bold text-accent mb-4 flex items-center gap-2">
                             <i data-lucide="sliders"></i> Pilot AI
                         </h3>
                         <div class="space-y-6">
                             <div>
-                                <label class="text-xs text-cyan-300 mb-1 block">Torque Limit</label>
-                                <input type="range" min="10" max="100" value="50" class="w-full">
+                                <label class="text-xs text-accent mb-1 block">Torque Limit</label>
+                                <input type="range" min="10" max="100" value="0" class="w-full" disabled>
                             </div>
                             <div class="flex items-center justify-between">
-                                <span class="text-sm text-cyan-100">Safety Override</span>
-                                <button onclick="toggleSwitch(this)" class="w-10 h-5 bg-green-600 rounded-full relative transition-colors">
-                                    <span class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></span>
+                                <span class="text-sm text-accent">Safety Override</span>
+                                <button onclick="toggleSwitch(this)" class="w-10 h-5 bg-gray-400 rounded-full relative transition-colors" disabled>
+                                    <span class="absolute left-1 top-1 w-3 h-3 bg-white rounded-full"></span>
                                 </button>
                             </div>
-                            <button onclick="showModal('Pilot Update', 'Parameters updated. Rebooting drive systems...')" class="w-full py-3 bg-cyan-700 hover:bg-cyan-600 text-white rounded font-bold shadow-lg shadow-cyan-900/50 transition-all">
+                            <button disabled onclick="showModal('Pilot Update', 'Parameters updated. Rebooting drive systems...')" class="w-full py-3 bg-accent hover:bg-cyan-600 text-white rounded font-bold shadow-lg shadow-cyan-900/50 transition-all" disabled>
                                 APPLY CHANGES
                             </button>
                         </div>
@@ -450,17 +690,17 @@
         <section id="module-creative" class="module-section flex-col h-full w-full p-4 md:p-8 overflow-y-auto">
             <div class="max-w-4xl mx-auto w-full h-full flex flex-col relative z-10">
                 <div class="mb-8">
-                    <h2 class="text-3xl font-extrabold text-cyan-300 flex items-center gap-3">
+                    <h2 class="text-3xl font-extrabold text-accent flex items-center gap-3">
                         <i data-lucide="image"></i> CREATIVE MODE
                     </h2>
-                    <p class="text-cyan-600 text-sm mt-1">Configure generative parameters.</p>
+                    <p class="text-accent text-sm mt-1">Configure generative parameters.</p>
                 </div>
 
                 <!-- Steps -->
                 <div class="flex justify-between mb-8 relative">
                     <div class="absolute top-1/2 left-0 w-full h-0.5 bg-gray-800 -z-10"></div>
                     
-                    <div class="w-10 h-10 rounded-full bg-cyan-500 text-black flex items-center justify-center font-bold ring-4 ring-black">1</div>
+                    <div class="w-10 h-10 rounded-full bg-accent text-black flex items-center justify-center font-bold ring-4 ring-black">1</div>
                     <div class="w-10 h-10 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center font-bold ring-4 ring-black" id="step-ind-2">2</div>
                     <div class="w-10 h-10 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center font-bold ring-4 ring-black" id="step-ind-3">3</div>
                 </div>
@@ -470,58 +710,58 @@
                     
                     <!-- Step 1 -->
                     <div id="creative-step-1" class="step-content">
-                        <h3 class="text-xl font-bold text-cyan-200 mb-6">Select Input Source</h3>
+                        <h3 class="text-xl font-bold text-accent  mb-6">Select Input Source</h3>
                         <div class="grid grid-cols-2 gap-6">
-                            <div onclick="setCreativeInput('text')" class="cursor-pointer border border-cyan-800/50 bg-black/40 p-6 rounded-lg hover:border-cyan-500 hover:bg-cyan-900/20 transition-all group text-center">
-                                <i data-lucide="type" class="w-10 h-10 mx-auto mb-4 text-cyan-600 group-hover:text-cyan-400"></i>
-                                <h4 class="font-bold text-cyan-100">Text Prompt</h4>
-                                <p class="text-xs text-cyan-600 mt-2">Describe visually</p>
+                            <div onclick="setCreativeInput('text')" class="cursor-pointer border border-accent/50 bg-accent/40 p-6 rounded-lg hover:border-cyan-500 hover:bg-cyan-900/20 transition-all group text-center">
+                                <i data-lucide="type" class="w-10 h-10 mx-auto mb-4 text-accent group-hover:text-accent "></i>
+                                <h4 class="font-bold text-accent">Text Prompt</h4>
+                                <p class="text-xs text-accent mt-2">Describe visually</p>
                             </div>
-                            <div onclick="setCreativeInput('image')" class="cursor-pointer border border-cyan-800/50 bg-black/40 p-6 rounded-lg hover:border-cyan-500 hover:bg-cyan-900/20 transition-all group text-center">
-                                <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto mb-4 text-cyan-600 group-hover:text-cyan-400"></i>
-                                <h4 class="font-bold text-cyan-100">Image Upload</h4>
-                                <p class="text-xs text-cyan-600 mt-2">Style transfer</p>
+                            <div onclick="setCreativeInput('image')" class="cursor-pointer border border-accent/50 bg-accent/40 p-6 rounded-lg hover:border-cyan-500 hover:bg-cyan-900/20 transition-all group text-center">
+                                <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto mb-4 text-accent group-hover:text-accent "></i>
+                                <h4 class="font-bold text-accent">Image Upload</h4>
+                                <p class="text-xs text-accent mt-2">Style transfer</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Step 2 -->
                     <div id="creative-step-2" class="step-content hidden">
-                        <h3 class="text-xl font-bold text-cyan-200 mb-6">Select Output Dimension</h3>
+                        <h3 class="text-xl font-bold text-accent  mb-6">Select Output Dimension</h3>
                         <div class="grid grid-cols-2 gap-6">
-                            <div onclick="setCreativeOutput('2d')" class="cursor-pointer border border-cyan-800/50 bg-black/40 p-6 rounded-lg hover:border-cyan-500 hover:bg-cyan-900/20 transition-all group text-center">
-                                <i data-lucide="maximize-2" class="w-10 h-10 mx-auto mb-4 text-cyan-600 group-hover:text-cyan-400"></i>
-                                <h4 class="font-bold text-cyan-100">2D Image</h4>
+                            <div onclick="setCreativeOutput('2d')" class="cursor-pointer border border-accent/50 bg-accent/40 p-6 rounded-lg hover:border-cyan-500 hover:bg-cyan-900/20 transition-all group text-center">
+                                <i data-lucide="maximize-2" class="w-10 h-10 mx-auto mb-4 text-accent group-hover:text-accent "></i>
+                                <h4 class="font-bold text-accent ">2D Image</h4>
                             </div>
-                            <div onclick="setCreativeOutput('3d')" class="cursor-pointer border border-cyan-800/50 bg-black/40 p-6 rounded-lg hover:border-cyan-500 hover:bg-cyan-900/20 transition-all group text-center">
-                                <i data-lucide="box" class="w-10 h-10 mx-auto mb-4 text-cyan-600 group-hover:text-cyan-400"></i>
-                                <h4 class="font-bold text-cyan-100">3D Model</h4>
+                            <div onclick="setCreativeOutput('3d')" class="cursor-pointer border border-accent/50 bg-accent/40 p-6 rounded-lg hover:border-cyan-500 hover:bg-cyan-900/20 transition-all group text-center">
+                                <i data-lucide="box" class="w-10 h-10 mx-auto mb-4 text-accent group-hover:text-accent"></i>
+                                <h4 class="font-bold text-accent ">3D Model</h4>
                             </div>
                         </div>
-                        <button onclick="prevCreativeStep()" class="mt-8 text-sm text-cyan-600 hover:text-white flex items-center gap-2">
+                        <button onclick="prevCreativeStep()" class="mt-8 text-sm text-accent hover:text-white flex items-center gap-2">
                             <i data-lucide="arrow-left" class="w-4 h-4"></i> Back
                         </button>
                     </div>
 
                     <!-- Step 3 -->
                     <div id="creative-step-3" class="step-content hidden">
-                        <h3 class="text-xl font-bold text-cyan-200 mb-6">Final Parameters</h3>
+                        <h3 class="text-xl font-bold text-accent mb-6">Final Parameters</h3>
                         <div class="space-y-6 max-w-lg">
                             <div>
-                                <label class="block text-sm text-cyan-400 mb-2">Style Preset</label>
-                                <select class="w-full bg-black/50 border border-cyan-700 rounded p-2 text-white">
+                                <label class="block text-sm text-accent mb-2">Style Preset</label>
+                                <select class="w-full bg-accent/50 border border-accent rounded p-2 text-white">
                                     <option>Cinematic</option>
                                     <option>Anime</option>
                                     <option>Photorealistic</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-sm text-cyan-400 mb-2">Complexity</label>
+                                <label class="block text-sm text-accent mb-2">Complexity</label>
                                 <input type="range" min="1" max="10" value="7" class="w-full">
                             </div>
                         </div>
                         <div class="flex gap-4 mt-8">
-                            <button onclick="prevCreativeStep()" class="px-4 py-2 rounded bg-gray-800 text-cyan-400 hover:bg-gray-700">Back</button>
+                            <button onclick="prevCreativeStep()" class="px-4 py-2 rounded bg-gray-800 text-accent hover:bg-gray-700">Back</button>
                             <button onclick="executeCreative()" class="px-6 py-2 rounded bg-amber-600 text-black font-bold hover:bg-amber-500 shadow-lg shadow-amber-900/50">
                                 FINALIZE & EXECUTE
                             </button>
@@ -535,82 +775,70 @@
         <!-- MODULE 4: ENGINE CONFIG (Restored) -->
         <section id="module-engine" class="module-section flex-col h-full w-full p-4 md:p-8 overflow-y-auto">
             <div class="max-w-5xl mx-auto w-full relative z-10">
-                <h2 class="text-3xl font-extrabold text-amber-400 flex items-center gap-3 mb-8">
+                <h2 class="text-3xl font-extrabold text-accent flex items-center gap-3 mb-8">
                     <i data-lucide="sliders-horizontal"></i> ENGINE CONFIGURATION
                 </h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="glass-panel p-6 rounded-xl">
-                        <h3 class="text-cyan-400 font-bold mb-4 flex items-center gap-2"><i data-lucide="cpu"></i> Hardware</h3>
+                        <h3 class="text-accent font-bold mb-4 flex items-center gap-2"><i data-lucide="cpu"></i> Hardware</h3>
                         <div class="space-y-6">
-                            <div>
+                            <div disabled>
                                 <label class="flex justify-between text-sm mb-2">
                                     <span>VRAM Limit</span>
-                                    <span class="text-cyan-300 font-mono">6.0 GB</span>
+                                    <span class="text-accent font-mono">--</span><!--6.0 GB-->
                                 </label>
-                                <input type="range" min="2" max="12" step="0.5" value="6" class="w-full">
+                                <input disabled type="range" min="2" max="12" step="0.5" value="0" class="w-full">
                                 <p class="text-[10px] text-yellow-500 mt-1 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> High usage may cause instability.</p>
                             </div>
                             <div>
                                 <label class="flex justify-between text-sm mb-2">
                                     <span>CPU Threads</span>
-                                    <span class="text-cyan-300 font-mono">8</span>
+                                    <span disabled class="text-accent font-mono">1</span> <!--8-->
                                 </label>
-                                <input type="range" min="1" max="32" step="1" value="8" class="w-full">
+                                <input disabled type="range" min="1" max="32" step="1" value="0" class="w-full">
                             </div>
-                            <button onclick="runBenchmark()" class="w-full py-3 border border-amber-600/50 text-amber-500 hover:bg-amber-600/20 rounded transition-all font-mono text-sm font-bold flex items-center justify-center gap-2">
-                                <i data-lucide="timer"></i> RUN BENCHMARK
+                            <button disabled onclick="runBenchmark()" class="w-full py-3 border border-amber-600/50 text-amber-500 hover:bg-amber-600/20 rounded transition-all font-mono text-sm font-bold flex items-center justify-center gap-2">
+                                <i disabled data-lucide="timer"></i> RUN BENCHMARK
                             </button>
                         </div>
                     </div>
 
                     <div class="glass-panel p-6 rounded-xl">
-                        <h3 class="text-cyan-400 font-bold mb-4 flex items-center gap-2"><i data-lucide="brain-circuit"></i> Generation Vibe</h3>
+                        <h3 class="text-accent font-bold mb-4 flex items-center gap-2"><i data-lucide="brain-circuit"></i> Generation Vibe</h3>
                         <div class="space-y-6">
                             <div>
                                 <label class="flex justify-between text-sm mb-2">
                                     <span>Temperature (Creativity)</span>
-                                    <span class="text-cyan-300 font-mono">0.75</span>
+                                    <span id="tempValue" class="text-accent font-mono">0.75</span>
                                 </label>
-                                <input type="range" min="0.1" max="1.5" step="0.05" value="0.75" class="w-full">
+                                <input id="tempRange" type="range" min="0.1" max="1.5" step="0.05" value="0.75" class="w-full">
                             </div>
                             <div>
                                 <label class="flex justify-between text-sm mb-2">
                                     <span>Context Window</span>
-                                    <span class="text-cyan-300 font-mono">4096</span>
+                                    <span id="contextValue" class="text-accent font-mono">4096</span>
                                 </label>
-                                <input type="range" min="1024" max="8192" step="512" value="4096" class="w-full">
+                                <input id="contextRange" type="range" min="1024" max="8192" step="512" value="4096" class="w-full">
                             </div>
                             <div>
                                 <label class="block text-sm mb-2">Model File</label>
-                                <select class="w-full bg-black/50 border border-cyan-700 rounded p-2 text-white text-sm">
-                                    <option>Llama-3 8B (Q5_K_M)</option>
-                                    <option>Mistral-7B-Instruct</option>
+                                <select id="model-selector" class="w-full text-accent border border-accent rounded p-2 bg-black-500 text-sm">
+                                    <option>openai/gpt-oss-20b</option>
+                                    <option>openai/gpt-oss-120b</option>
+                                    <option>llama-3.1-8b-instant</option>
+                                    <option>llama-3.3-70b-versatile</option>
+                                    <option>whisper-large-v3</option>
+                                    <option>whisper-large-v3-turbo</option>
+                                    <option>groq/compound</option>
+                                    <option>groq/compound-mini</option>
                                 </select>
                             </div>
                         </div>
                     </div>
-                    <div class="glass-panel p-6 rounded-xl mt-6">
-                        <h3 class="text-cyan-400 font-bold mb-4 flex items-center gap-2">
-                            <i data-lucide="download-cloud"></i> Model Explorer
-                        </h3>
-
-                        <div class="flex gap-2 mb-4">
-                            <input type="text" id="model-search"
-                                class="flex-1 bg-black/50 border border-cyan-700 rounded p-2 text-white text-sm"
-                                placeholder="Search models (e.g. llama 3 instruct)">
-                            <button onclick="searchModels()"
-                                class="px-4 bg-cyan-700 hover:bg-cyan-600 text-white rounded text-sm">
-                                SEARCH
-                            </button>
-                        </div>
-
-                        <div id="model-results" class="space-y-3 max-h-64 overflow-y-auto"></div>
-                    </div>
-                </div>
-                
+                </div> 
                 <div class="mt-8 flex justify-end">
-                    <button onclick="showModal('Config Saved', 'System will reload parameters on next session.')" class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-lg shadow-green-900/50 transition-all">
+                    <button onclick=saveConfiguration() class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-lg shadow-green-900/50 transition-all">
                         SAVE CONFIGURATION
                     </button>
                 </div>
@@ -620,40 +848,57 @@
         <!-- MODULE 5: APPEARANCE (Restored) -->
         <section id="module-appearance" class="module-section flex-col h-full w-full p-4 md:p-8 overflow-y-auto">
             <div class="max-w-4xl mx-auto w-full relative z-10">
-                <h2 class="text-3xl font-extrabold text-cyan-300 flex items-center gap-3 mb-8">
+                <h2 class="text-3xl font-extrabold text-accent flex items-center gap-3 mb-8">
                     <i data-lucide="palette"></i> APPEARANCE & UI
                 </h2>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="glass-panel p-6 rounded-xl">
-                        <h3 class="text-cyan-400 font-bold mb-4 border-b border-cyan-900/50 pb-2">Theme</h3>
-                        
-                        <div class="flex gap-4 mb-6 bg-black/30 p-1 rounded-lg w-max">
-                            <button class="px-4 py-1 rounded bg-cyan-700 text-white text-sm">Dark</button>
-                            <button class="px-4 py-1 rounded text-cyan-400 hover:text-white text-sm">Light</button>
+                        <h3 class="text-accent font-bold mb-4 border-b border-accent/50 pb-2">Theme</h3>
+                        <div class="flex gap-4 mb-6 bg-accent/30 p-1 rounded-lg w-max">
+                            <button data-theme="dark"  class="theme-btn px-4 py-1 rounded   text-accent hover:text-white text-sm">Dark</button>
+                            <button data-theme="light" class="theme-btn px-4 py-1 rounded   bg-accent   hover:text-white text-sm">Light</button>
                         </div>
-
-                        <h4 class="text-sm text-cyan-200 mb-3">Accent Color</h4>
+                        <h4 class="text-sm text-accent mb-3">Accent Color</h4>
                         <div class="flex gap-3">
-                            <div class="w-8 h-8 rounded-full bg-cyan-500 cursor-pointer ring-2 ring-white"></div>
-                            <div class="w-8 h-8 rounded-full bg-blue-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
-                            <div class="w-8 h-8 rounded-full bg-amber-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
-                            <div class="w-8 h-8 rounded-full bg-green-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#06b6d4" class="w-8 h-8 rounded-full bg-cyan-500 cursor-pointer ring-2 ring-white"></div>
+                            <div data-color="#3b82f6" class="w-8 h-8 rounded-full bg-blue-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#f59e0b" class="w-8 h-8 rounded-full bg-amber-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#22c55e" class="w-8 h-8 rounded-full bg-green-300 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#b34639" class="w-8 h-8 rounded-full bg-red-400 cursor-pointer hover:ring-2 ring-white"></div>
+                            <div data-color="#3C8E38" class="w-8 h-8 rounded-full bg-green-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#7E4D5D" class="w-8 h-8 rounded-full bg-indigo-300 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#B87232" class="w-8 h-8 rounded-full bg-orange-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#5F268D" class="w-8 h-8 rounded-full bg-purple-500 cursor-pointer hover:ring-2 ring-white"></div>
+                            <div data-color="#627A5B" class="w-8 h-8 rounded-full bg-emerald-700 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#914D79" class="w-8 h-8 rounded-full bg-fuchsia-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#9E8850" class="w-8 h-8 rounded-full bg-stone-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#712925" class="w-8 h-8 rounded-full bg-rose-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
+                            <div data-color="#2B2C2B" class="w-8 h-8 rounded-full bg-zinc-500 cursor-pointer hover:ring-2 hover:ring-white/50"></div>
                         </div>
                     </div>
 
                     <div class="glass-panel p-6 rounded-xl">
-                        <h3 class="text-cyan-400 font-bold mb-4 border-b border-cyan-900/50 pb-2">Background</h3>
+                        <h3 class="text-accent font-bold mb-4 border-b border-accent/50 pb-2">Background</h3>
                         
-                        <select class="w-full bg-black/50 border border-cyan-700 rounded p-2 text-white text-sm mb-4">
+                        <select id="bgSelector" class="w-full text-accent border border-accent rounded p-2 text-accent text-sm mb-4">
+                            <option>None</option>
+                            <option>Orbital View   (3D)</option>
                             <option>Neural Network (3D)</option>
                             <option>Code Rain (Matrix)</option>
                             <option>Solid Black (Perf)</option>
                         </select>
 
-                        <div class="border-2 border-dashed border-cyan-800 rounded-lg p-8 text-center cursor-pointer hover:border-cyan-500 hover:bg-cyan-900/20 transition-all" id="bg-drop-zone">
-                            <i data-lucide="image" class="w-8 h-8 mx-auto mb-2 text-cyan-600"></i>
-                            <p class="text-xs text-cyan-400">Drop Custom BG Image</p>
+                        <div class="border-2 border-dashed border-accent rounded-lg p-8 text-center cursor-pointer hover:border-cyan-500 hover:bg-accent/20 transition-all" id="bg-drop-zone">
+                            <i data-lucide="image" class="w-8 h-8 mx-auto mb-2 text-accent"></i>
+                            <p class="text-xs text-accent">Drop Custom BG Image</p>
+                            <input 
+                                disabled
+                                type="file" 
+                                id="bgFileInput" 
+                                accept="image/*" 
+                                class="hidden"
+                            />
                         </div>
                     </div>
                 </div>
@@ -667,12 +912,12 @@
             <canvas id="bg-bot" class="bg-canvas-container"></canvas>
 
             <div class="max-w-3xl mx-auto w-full relative z-10 h-full flex flex-col justify-center">
-                <div class="glass-panel p-6 rounded-xl mb-4 border-green-900/30 bg-black/80">
+                <div class="glass-panel p-6 rounded-xl mb-4 border-green-900/30 bg-accent/80">
                     <div class="flex justify-between items-center border-b border-green-900/50 pb-4 mb-4">
                         <h2 class="text-2xl font-bold text-green-400 font-mono flex items-center gap-2">
                             <i data-lucide="terminal"></i> NEURAL AGENT MANAGER
                         </h2>
-                        <span class="text-xs font-mono text-green-600 bg-black p-1 border border-green-800 rounded">ID: 0001</span>
+                        <span class="text-xs font-mono text-green-600 bg-accent p-1 border border-green-800 rounded">ID: 0001</span>
                     </div>
 
                     <!-- Existing Active Bot -->
@@ -691,7 +936,7 @@
                     </div>
 
                     <!-- Empty Slot (Creation Trigger) -->
-                    <div onclick="openCreateBotModal()" class="flex items-center justify-between border-2 border-dashed border-green-800/50 hover:border-green-500/80 bg-black/40 p-6 rounded-lg cursor-pointer transition-all group">
+                    <div onclick="openCreateBotModal()" class="flex items-center justify-between border-2 border-dashed border-green-800/50 hover:border-green-500/8 bg-accent/40 p-6 rounded-lg cursor-pointer transition-all group">
                         <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full border border-green-800 flex items-center justify-center text-green-800 group-hover:text-green-400 group-hover:border-green-400">
                                 <i data-lucide="plus"></i>
@@ -704,14 +949,14 @@
                     </div>
                 </div>
 
-                <div class="glass-panel p-6 rounded-xl border-green-900/30 bg-black/80">
+                <div class="glass-panel p-6 rounded-xl border-green-900/30 bg-accent/80">
                     <div class="grid grid-cols-3 gap-4">
-                        <button class="py-3 px-4 border border-green-800/50 hover:bg-green-900/40 text-green-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm">SAVE</button>
-                        <button class="py-3 px-4 border border-green-800/50 hover:bg-green-900/40 text-green-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm">LOAD</button>
-                        <button class="py-3 px-4 border border-green-800/50 hover:bg-red-900/30 text-red-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm">DELETE</button>
-                        <button class="py-3 px-4 border border-green-800/50 hover:bg-green-900/40 text-green-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm">REPLICATE</button>
-                        <button class="py-3 px-4 border border-green-800/50 hover:bg-green-900/40 text-green-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm">MERGE</button>
-                        <button class="py-3 px-4 border border-green-800/50 hover:bg-green-900/40 text-green-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm">EXPORT</button>
+                        <button id="saveBtn" class="SaveLoadOption py-3 px-4 border border-green-800/50 hover:bg-green-900/40 text-green-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm" onclick="window.api.saveDocument()">SAVE</button>
+                        <button id="loadBtn" class="SaveLoadOption py-3 px-4 border border-green-800/50 hover:bg-green-900/40 text-green-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm" onclick="window.api.loadDocument()">LOAD</button>
+                        <button id="delBtn"  class="SaveLoadOption py-3 px-4 border border-green-800/50 hover:bg-red-900/30 text-red-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm"     onclick="window.api.deleteDocument()">DELETE</button>
+                        <button id="mergeBtn" class="SaveLoadOption py-3 px-4 border border-green-800/50 hover:bg-green-900/40 text-green-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm" onclick="window.api.replicateDocument()">REPLICATE</button>
+                        <button id="replicateBtn" class="SaveLoadOption py-3 px-4 border border-green-800/50 hover:bg-green-900/40 text-green-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm" onclick="window.api.mergeDocument()">MERGE</button>
+                        <button id="exportBtn "class="SaveLoadOption py-3 px-4 border border-green-800/50 hover:bg-green-900/40 text-green-300 font-mono text-xs font-bold transition-all rounded backdrop-blur-sm" onclick="window.api.exportDocument()">EXPORT</button>
                     </div>
                 </div>
             </div>
@@ -735,8 +980,194 @@
 
             resizeCanvases();
         }
+        document.addEventListener("DOMContentLoaded", () => {
+            const botModule = document.getElementById("module-management");
+            if (botModule) {
+                // Make sure the section is visible before initializing
+                setTimeout(() => {
+                    if (!window.currentBG) {
+                        window.currentBG = initMatrixRain();
+                    }
+                }, 100); // small delay to let CSS render
+            }
+        });
 
-        // --- 2. Chat Background: Holographic Globe ---
+         // --- Bot Background: Matrix Rain ---
+        function initBotBackground() {
+            const canvas = document.getElementById('bg-bot');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const fontSize = 14;
+            let drops = [];
+            const chars = "010101XYZAUTOMATSYSTEM";
+
+            function resize() {
+                canvas.width  = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+                drops = Array(Math.floor(canvas.width / fontSize)).fill(1);
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            setInterval(() => {
+                if (!canvas.width || !canvas.height) return;
+                const light = document.body.classList.contains('light-theme');
+                ctx.fillStyle = light ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = light ? '#009900' : '#0F0';
+                ctx.font = fontSize + 'px monospace';
+                drops.forEach((y, i) => {
+                    ctx.fillText(chars[Math.floor(Math.random() * chars.length)], i * fontSize, y * fontSize);
+                    if (y * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                });
+            }, 33);
+        }
+
+        // --- Init ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedTheme();
+            loadSavedAccent();
+            lucide.createIcons();
+            initChatBackground();
+            // After globe is built, apply saved accent to it
+            const savedAccent = localStorage.getItem('cybel-accent');
+            if (savedAccent) updateGlobeAccent();
+            initBotBackground();
+
+            const dropZoneEl = document.getElementById('bg-drop-zone');
+            dropZoneEl.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZoneEl.classList.add('border-cyan-400');
+            });
+            dropZoneEl.addEventListener('dragleave', () => {
+                dropZoneEl.classList.remove('border-cyan-400');
+            });
+            dropZoneEl.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZoneEl.classList.remove('border-cyan-400');
+                dropZoneEl.querySelector('p').innerText = "Image Loaded: custom_bg.png";
+                dropZoneEl.querySelector('i').classList.add('text-green-400');
+                dropZoneEl.querySelector('i').classList.remove('text-cyan-600');
+            });
+        });
+        // Hook into module activation
+        function activateModule(id) {
+            document.querySelectorAll('.module-section').forEach(s => s.classList.remove('active'));
+            const section = document.getElementById(id);
+            section.classList.add('active');
+
+            if (id === 'module-management') {
+                if (!currentBG) currentBG = initBotBackground();
+                currentBG.start(); // start rain **after module becomes visible**
+            } else if (currentBG) {
+                currentBG.cleanup(); // stop rain when switching away
+                currentBG = null;
+            }
+        }
+                // --- 2. Chat Background: Holographic Globe ---
+        function initMatrixRain() {
+            const canvas = document.getElementById('bg-bot');
+            const ctx = canvas.getContext('2d');
+
+            // Make canvas fill container
+            function resize() {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            const letters = 'アカサタナハマヤラワABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const fontSize = 16;
+            const columns = Math.floor(canvas.width / fontSize);
+            const drops = Array(columns).fill(0);
+
+            function draw() {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; // fading trail
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = 'lime'; // text color
+                ctx.font = fontSize + 'px monospace';
+
+                for (let i = 0; i < drops.length; i++) {
+                    const text = letters[Math.floor(Math.random() * letters.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                }
+            }
+
+            const interval = setInterval(draw, 50);
+
+            // Return cleanup function if needed
+            return {
+                cleanup() {
+                    clearInterval(interval);
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                },
+                setAccent(color) {
+                    ctx.fillStyle = color; // optional if you want dynamic accent
+                }
+            };
+        }
+
+        // Example usage:
+        let currentBG = initMatrixRain();
+        function initImageBackground(imageSrc) {
+        const container = document.getElementById('bg-chat');
+
+        const scene = new THREE.Scene();
+
+        const camera = new THREE.OrthographicCamera(
+            -1, 1, 1, -1, 0.1, 10
+        );
+        camera.position.z = 1;
+
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        const loader = new THREE.TextureLoader();
+
+        const texture = loader.load(imageSrc, () => {
+            renderer.render(scene, camera);
+        });
+
+        texture.minFilter = THREE.LinearFilter;
+
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const material = new THREE.MeshBasicMaterial({
+            map: texture
+        });
+
+        const plane = new THREE.Mesh(geometry, material);
+        scene.add(plane);
+
+        function cleanup() {
+            renderer.dispose();
+            geometry.dispose();
+            material.dispose();
+            texture.dispose();
+            container.removeChild(renderer.domElement);
+        }
+
+        function setAccent() {
+            // Not needed for image bg, but keeps API consistent
+        }
+
+        renderer.render(scene, camera);
+
+        return {
+            cleanup,
+            setAccent
+        };
+    }
+
         function initChatBackground() {
             const container = document.getElementById('bg-chat');
             const scene = new THREE.Scene();
@@ -753,7 +1184,11 @@
             // Globe
             const globeGeometry = new THREE.IcosahedronGeometry(6, 2);
             const wireframeGeometry = new THREE.WireframeGeometry(globeGeometry);
-            const globeMaterial = new THREE.LineBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.15 });
+            const accent = getComputedStyle(document.documentElement)
+            .getPropertyValue('--accent')
+            .trim();
+            let accentColor = new THREE.Color(accent);
+            const globeMaterial = new THREE.LineBasicMaterial({ color: accentColor, transparent: true, opacity: 0.15 });
             const globe = new THREE.LineSegments(wireframeGeometry, globeMaterial);
             scene.add(globe);
 
@@ -769,59 +1204,248 @@
             const posArray = new Float32Array(particleCount * 3);
             for(let i = 0; i < particleCount * 3; i++) posArray[i] = (Math.random() - 0.5) * 25; 
             particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-            const particlesMat = new THREE.PointsMaterial({ size: 0.1, color: 0x06b6d4, transparent: true, opacity: 0.6 });
+            const particlesMat = new THREE.PointsMaterial({ size: 0.1, color: accentColor, transparent: true, opacity: 0.6 });
             const particles = new THREE.Points(particlesGeo, particlesMat);
             scene.add(particles);
 
+            let animationId;
             const animate = () => {
-                requestAnimationFrame(animate);
+                animationId = requestAnimationFrame(animate);
                 globe.rotation.y += 0.002;
                 globe.rotation.x += 0.0005;
                 core.rotation.y -= 0.004;
                 particles.rotation.y += 0.0005;
                 renderer.render(scene, camera);
             };
-            animate();
-
-            window.addEventListener('resize', () => {
-                if(container.clientWidth > 0) {
-                    camera.aspect = container.clientWidth / container.clientHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(container.clientWidth, container.clientHeight);
-                }
-            });
+        animate();
+        
+        // ---- EXPOSED METHODS ----
+        function setAccent(color) {
+            accentColor = new THREE.Color(color);
+            globeMaterial.color.set(accentColor);
+            particlesMat.color.set(accentColor);
+            globeMaterial.needsUpdate = true;
+            particlesMat.needsUpdate = true;
         }
 
-        // --- 3. Bot Background: Matrix Rain ---
-        function initBotBackground() {
-            const canvas = document.getElementById('bg-bot');
-            const ctx = canvas.getContext('2d');
-            let width = canvas.width = canvas.parentElement.clientWidth;
-            let height = canvas.height = canvas.parentElement.clientHeight;
-            const fontSize = 14;
-            const columns = width / fontSize;
-            const drops = [];
-            for (let i = 0; i < columns; i++) drops[i] = 1;
-            const chars = "010101XYZAUTOMATSYSTEM";
+        function cleanup() {
+            cancelAnimationFrame(animationId);
+            renderer.dispose();
+            globeGeometry.dispose();
+            wireframeGeometry.dispose();
+            particlesGeo.dispose();
+            globeMaterial.dispose();
+            particlesMat.dispose();
+            container.removeChild(renderer.domElement);
+        }
 
-            function draw() {
-                ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
-                ctx.fillRect(0, 0, width, height);
-                ctx.fillStyle = "#0F0";
-                ctx.font = fontSize + "px monospace";
-                for (let i = 0; i < drops.length; i++) {
-                    const text = chars.charAt(Math.floor(Math.random() * chars.length));
-                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                    if (drops[i] * fontSize > height && Math.random() > 0.975) drops[i] = 0;
-                    drops[i]++;
+        // ---- HANDLE RESIZE ----
+        window.addEventListener('resize', () => {
+            if (container.clientWidth > 0 && container.clientHeight > 0) {
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+        });
+
+        return { cleanup, setAccent };
+    }
+
+ function initCircuitBackground() {
+    const container = document.getElementById('bg-chat');
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x000000, 0.02);
+
+    const camera = new THREE.PerspectiveCamera(
+        75,
+        container.clientWidth / container.clientHeight,
+        0.1,
+        1000
+    );
+    camera.position.z = 20;
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    // ---- ACCENT COLOR ----
+    const accent = getComputedStyle(document.documentElement)
+        .getPropertyValue('--accent')
+        .trim();
+    let accentColor = new THREE.Color(accent);
+
+    // --- Nodes ---
+    const nodeGeometry = new THREE.SphereGeometry(0.2, 6, 6);
+    const nodeMaterial = new THREE.MeshBasicMaterial({ color: accentColor });
+    const nodes = [];
+    const nodeCount = 50;
+
+    for (let i = 0; i < nodeCount; i++) {
+        const node = new THREE.Mesh(nodeGeometry, nodeMaterial.clone());
+        node.position.set(
+            (Math.random() - 0.5) * 30,
+            (Math.random() - 0.5) * 20,
+            (Math.random() - 0.5) * 30
+        );
+        scene.add(node);
+        nodes.push(node);
+    }
+
+    // --- Connections (Lines) ---
+    const lineMaterial = new THREE.LineBasicMaterial({ color: accentColor, opacity: 0.2, transparent: true });
+    const lineGeometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(nodeCount * nodeCount * 3 * 2); // max possible lines
+    lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const lineSegments = new THREE.LineSegments(lineGeometry, lineMaterial);
+    scene.add(lineSegments);
+
+    function updateConnections() {
+        let ptr = 0;
+        for (let i = 0; i < nodeCount; i++) {
+            for (let j = i + 1; j < nodeCount; j++) {
+                const dist = nodes[i].position.distanceTo(nodes[j].position);
+                if (dist < 8) {
+                    positions[ptr++] = nodes[i].position.x;
+                    positions[ptr++] = nodes[i].position.y;
+                    positions[ptr++] = nodes[i].position.z;
+
+                    positions[ptr++] = nodes[j].position.x;
+                    positions[ptr++] = nodes[j].position.y;
+                    positions[ptr++] = nodes[j].position.z;
                 }
             }
-            setInterval(draw, 33);
-            window.addEventListener('resize', () => {
-                width = canvas.width = canvas.parentElement.clientWidth;
-                height = canvas.height = canvas.parentElement.clientHeight;
-            });
         }
+        lineGeometry.setDrawRange(0, ptr / 3);
+        lineGeometry.attributes.position.needsUpdate = true;
+    }
+
+    // --- Animate ---
+    let animId;
+    function animate() {
+        animId = requestAnimationFrame(animate);
+
+        nodes.forEach(n => {
+            n.rotation.x += 0.002;
+            n.rotation.y += 0.003;
+        });
+
+        updateConnections();
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // --- Exposed Methods ---
+    function setAccent(color) {
+        accentColor = new THREE.Color(color);
+        nodeMaterial.color.set(accentColor);
+        lineMaterial.color.set(accentColor);
+        nodeMaterial.needsUpdate = true;
+        lineMaterial.needsUpdate = true;
+    }
+
+    function cleanup() {
+        cancelAnimationFrame(animId);
+        renderer.dispose();
+        nodeGeometry.dispose();
+        lineGeometry.dispose();
+        nodeMaterial.dispose();
+        lineMaterial.dispose();
+        container.removeChild(renderer.domElement);
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    return { setAccent, cleanup };
+    }   
+
+function initBotBackground() {
+    const container = document.getElementById('bg-chat'); // reuse bg-chat for consistency
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x000000, 0.02);
+
+    const camera = new THREE.PerspectiveCamera(
+        75,
+        container.clientWidth / container.clientHeight,
+        0.1,
+        1000
+    );
+    camera.position.z = 20;
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    // ---- PARTICLES AS CHARACTERS ----
+    const chars = "010101XYZAUTOMATSYSTEM";
+    const particleCount = 1000;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const speeds = new Float32Array(particleCount);
+
+    for (let i = 0; i < particleCount; i++) {
+        positions[i * 3 + 0] = (Math.random() - 0.5) * 50; // x
+        positions[i * 3 + 1] = Math.random() * 50;         // y
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 50; // z
+        speeds[i] = 0.05 + Math.random() * 0.1;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    const material = new THREE.PointsMaterial({
+        size: 0.5,
+        color: new THREE.Color(accent),
+        transparent: true,
+        opacity: 0.6
+    });
+
+    const points = new THREE.Points(geometry, material);
+    scene.add(points);
+
+    let animationId;
+    function animate() {
+        animationId = requestAnimationFrame(animate);
+        const pos = geometry.attributes.position.array;
+        for (let i = 0; i < particleCount; i++) {
+            pos[i * 3 + 1] -= speeds[i]; // move down
+            if (pos[i * 3 + 1] < -25) pos[i * 3 + 1] = 25; // loop
+        }
+        geometry.attributes.position.needsUpdate = true;
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    // ---- METHODS ----
+    function setAccent(color) {
+        material.color.set(color);
+        material.needsUpdate = true;
+    }
+
+    function cleanup() {
+        cancelAnimationFrame(animationId);
+        renderer.dispose();
+        geometry.dispose();
+        material.dispose();
+        container.removeChild(renderer.domElement);
+    }
+
+    window.addEventListener('resize', () => {
+        if (container.clientWidth > 0) {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+    });
+
+    return { setAccent, cleanup };
+}
 
         // --- 4. UI Logic ---
         function toggleSwitch(btn) {
@@ -856,39 +1480,56 @@
             }, 10);
         }
 
+        function saveConfiguration(){
+            showModal('Config Saved', 'Parameters Reloaded.');
+            const tempValue = document.getElementById('contextValue');
+            const contextValue = document.getElementById('tempValue');
+            const selector = document.getElementById("model-selector");
+            window.api.updateEngine({ mode: selector.value });
+            window.api.setTemperature(tempValue);
+            window.api.setContextWindowKey(contextValue);
+        }
+
         async function handleChatSubmit(e) {
             e.preventDefault();
 
             const input = document.getElementById('chat-input');
+            const groqKeyInput = document.getElementById('groq-key-input');
             const history = document.getElementById('chat-history');
-            const text = input.value.trim();
+            const text    = input.value.trim();
             if (!text) return;
 
+            /*const keyText = groqKeyInput.value.trim();*/
+            /*if(keyText){
+                await window.api.setGroqKey(text);
+            }*/
             // 1. Show user message
             history.insertAdjacentHTML('beforeend', `
                 <div class="flex gap-4 justify-end">
-                    <div class="bg-cyan-900/30 border border-cyan-700/50 p-4 rounded-lg rounded-tr-none shadow-lg max-w-[80%]">
-                        <p class="text-cyan-100 text-sm leading-relaxed">${text}</p>
+                    <div class="text-accent/30 border border-accent/50 p-4 rounded-lg rounded-tr-none shadow-lg max-w-[80%]">
+                        <p class="text-accent text-sm leading-relaxed">${text}</p>
                     </div>
                 </div>
             `);
 
             input.value = '';
             history.scrollTop = history.scrollHeight;
+            const avatarSrc = getCurrentThemeAvatar(); // e.g. './assets/avatar_red.png'
 
             // 2. Temporary "thinking" message
             const thinkingId = `thinking-${Date.now()}`;
             history.insertAdjacentHTML('beforeend', `
                 <div id="${thinkingId}" class="flex gap-4">
-                    <div class="w-8 h-8 rounded-full bg-cyan-900/50 flex items-center justify-center border border-cyan-500/30">
+                    <div class="w-8 h-8 rounded-full overflow-hidden text-accent flex items-center justify-center border border-accent/30">
                         <img
-                                    src="./assets/image2.png"
+                                    id="avatarImage"
+                                    src=""${avatarSrc}""
                                     alt="AI Avatar"
                                     class="w-full h-full object-cover"
                         />
                     </div>
-                    <div class="bg-black/60 border border-cyan-500/30 p-4 rounded-lg rounded-tl-none max-w-[80%]">
-                        <p class="text-cyan-300 text-sm font-mono animate-pulse">Processing…</p>
+                    <div class="bg-accent/60 border border-accent/30 p-4 rounded-lg rounded-tl-none max-w-[80%]">
+                        <p class="text-accent text-sm font-mono animate-pulse">Processing…</p>
                     </div>
                 </div>
             `);
@@ -904,19 +1545,23 @@
 
                 // Parse markdown
                 const html = marked.parse(content);
+                const avatarSrc = getCurrentThemeAvatar(); // e.g. './assets/avatar_red.png'
 
                 // Replace thinking message with AI response
                 document.getElementById(thinkingId).outerHTML = `
                     <div class="flex gap-4">
-                        <div class="w-8 h-8 rounded-full bg-cyan-900/50 flex items-center justify-center border border-cyan-500/30">
+                        <div class="w-8 h-8 rounded-full overflow-hidden bg-accent/50 flex items-center justify-center border border-accent/30">
                             <img
-                                    src="./assets/image2.png"
+                                    id="avatarImage"
+                                    src="${avatarSrc}"
                                     alt="AI Avatar"
                                     class="w-full h-full object-cover"
                             />
                         </div>
-                        <div class="bg-black/60 border border-cyan-500/30 p-4 rounded-lg rounded-tl-none shadow-lg max-w-[80%]">
-                            <div class="markdown-content">${html}</div>
+                        <div class="bg-accent/60 border border-accent/30 p-4 rounded-lg rounded-tl-none shadow-lg max-w-[80%]">
+                            <div class="markdown-content">
+                                <p class="text-accent">${html}</p>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -936,8 +1581,8 @@
                 
                 const fileMsgHTML = `
                 <div class="flex gap-4 justify-end">
-                    <div class="bg-cyan-900/30 border border-cyan-700/50 p-4 rounded-lg rounded-tr-none shadow-lg max-w-[80%]">
-                        <p class="text-cyan-100 text-sm leading-relaxed flex items-center gap-2">
+                    <div class="bg-accent/30 border border-accent/50 p-4 rounded-lg rounded-tr-none shadow-lg max-w-[80%]">
+                        <p class="text-accent text-sm leading-relaxed flex items-center gap-2">
                             <i data-lucide="file"></i> Attached: ${file.name}
                         </p>
                     </div>
@@ -951,6 +1596,18 @@
 
         // --- 6. Create Bot Logic ---
         let selectedBotType = null;
+        function saveAppearance() {
+            const bgSelect = document.getElementById('bgSelector');
+            const appearance = {
+                accent: getComputedStyle(document.documentElement)
+                            .getPropertyValue('--accent')
+                            .trim(),
+                theme: document.documentElement.dataset.theme,
+                background: bgSelect.value
+            };
+
+            localStorage.setItem("appearanceConfig", JSON.stringify(appearance));
+        }
 
         function openCreateBotModal() {
             document.getElementById('create-bot-modal').classList.remove('hidden');
@@ -966,6 +1623,7 @@
             document.getElementById('type-character').classList.remove('selected');
             document.getElementById('type-agent').classList.remove('selected');
             document.getElementById('type-' + type).classList.add('selected');
+            window.api.updateCharacter(selectedBotType);
         }
 
         function confirmCreateBot() {
@@ -1006,18 +1664,18 @@
             
             if (creativeStep >= 2) {
                 ind2.classList.remove('bg-gray-800', 'text-gray-400');
-                ind2.classList.add('bg-cyan-500', 'text-black');
+                ind2.classList.add('bg-accent', 'text-black');
             } else {
                 ind2.classList.add('bg-gray-800', 'text-gray-400');
-                ind2.classList.remove('bg-cyan-500', 'text-black');
+                ind2.classList.remove('bg-accent', 'text-black');
             }
 
             if (creativeStep >= 3) {
                 ind3.classList.remove('bg-gray-800', 'text-gray-400');
-                ind3.classList.add('bg-cyan-500', 'text-black');
+                ind3.classList.add('bg-accent', 'text-black');
             } else {
                 ind3.classList.add('bg-gray-800', 'text-gray-400');
-                ind3.classList.remove('bg-cyan-500', 'text-black');
+                ind3.classList.remove('bg-accent', 'text-black');
             }
         }
 
@@ -1059,30 +1717,312 @@
             window.dispatchEvent(new Event('resize'));
         }
 
+        let avatar = null;
+        function setCurrentThemeAvatar(av){
+            avatar = av;
+        }
+function getCurrentThemeAvatar() {
+    // Default avatar and color
+    let avatar = "./assets/avatar_blue.png";
+    let color = "#06b6d4"; // default accent color
+
+    const bgSelectS = document.getElementById('bgSelector');
+    if (bgSelectS && bgSelectS.value) {
+        color = bgSelectS.value;
+         // Map of accent colors to avatars
+    const avatarMap = {
+        "#06b6d4": "./assets/avatar_blue.png",
+        "#3b82f6": "./assets/avatar_blue.png",
+        "#f59e0b": "./assets/avatar_gold.png",
+        "#22c55e": "./assets/avatar_green.png",
+        "#b34639": "./assets/avatar_red.png",
+        "#3C8E38": "./assets/avatar_emerald.png",
+        "#7E4D5D": "./assets/avatar_rose.png",
+        "#B87232": "./assets/avatar_gold.png",
+        "#5F268D": "./assets/avatar_logicgate.png",
+        "#627A5B": "./assets/avatar_emerald.png",
+        "#914D79": "./assets/avatar_pink.png",
+        "#9E8850": "./assets/avatar_yellow.png",
+        "#712925": "./assets/avatar_ultron.png",
+        "#2B2C2B": "./assets/avatar_black.png"
+    };
+
+    // Pick avatar based on color, fallback to default
+    if (avatarMap[color]) {
+        avatar = avatarMap[color];
+    }
+    
+    return avatar;
+    }
+    return null;
+}
+const canvas = document.getElementById('bg-bot');
+const ctx = canvas.getContext('2d');
+
+// 1. Set actual canvas size (not CSS)
+canvas.width = canvas.offsetWidth;
+canvas.height = canvas.offsetHeight;
+
+// 2. Font & fill style
+ctx.font = '16px monospace';
+ctx.fillStyle = 'lime';
+
+// 3. Initialize drops AFTER width is set
+const fontSize = 16;
+const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const columns = Math.floor(canvas.width / fontSize);
+const drops = Array(columns).fill(0);
+
+// 4. Draw loop
+function draw() {
+    ctx.fillStyle = 'rgba(0,0,0,0.05)'; // fade
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'lime';
+    for (let i = 0; i < drops.length; i++) {
+        const text = letters[Math.floor(Math.random() * letters.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        drops[i] = (drops[i] * fontSize > canvas.height && Math.random() > 0.975) ? 0 : drops[i] + 1;
+    }
+}
+
+setInterval(draw, 50);
         // Init
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
-            initChatBackground();
-            initBotBackground();
+             // Mode selector
+            const modeSelector = document.getElementById("modeSelector");
+            if (modeSelector) {
+            modeSelector.addEventListener("change", (e) => {
+                window.api.setMode(e.target.value);
+            });
+            }
             
+                    const themeButtons = document.querySelectorAll('[data-theme]');
+                        themeButtons.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            // Remove selected from all
+                            themeButtons.forEach(b => b.classList.remove('selected', 'bg-accent', 'text-white'));
+                            
+                            // Add selected styling
+                            btn.classList.add('selected', 'bg-accent', 'text-white');
+
+                            if (btn.dataset.theme === "dark") {
+                                document.documentElement.classList.remove("light");
+                                document.documentElement.classList.add("dark");
+                                document.body.dataset.theme = "dark";
+                            } else {
+                                document.documentElement.classList.remove("dark");
+                                document.documentElement.classList.add("light");
+                                document.body.dataset.theme = "light";
+                            }
+                        });
+                    });
+
+                    // Accent color swatches
+                    const colorSwatches = document.querySelectorAll('[data-color]');
+                        colorSwatches.forEach(swatch => {
+                        swatch.addEventListener('click', () => {
+                            const color = swatch.dataset.color;
+                            document.documentElement.style.setProperty('--accent', color);
+
+                            // Remove selected from all
+                            colorSwatches.forEach(s => s.classList.remove('selected', 'ring-4', 'ring-white'));
+                            // Add selected to clicked
+                            swatch.classList.add('selected', 'ring-4', 'ring-white');
+                        });
+                    });
+           
+                    document.querySelectorAll('.SaveLoadOption').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const title = 'MyDoc'; // Replace with your selected document
+                        let res;
+
+                        switch (btn.innerText) {
+                        case 'SAVE':
+                            res = await window.api.saveDocument({ title, content: 'Hello World' });
+                            break;
+                        case 'LOAD':
+                            res = await window.api.loadDocument(title);
+                            break;
+                        case 'DELETE':
+                            res = await window.api.deleteDocument(title);
+                            break;
+                        case 'REPLICATE':
+                            let t = title + "_copy";
+                            res = await window.api.replicateDocument(t);
+                            break;
+                        case 'MERGE':
+                            res = await window.api.mergeDocument(
+                            { title, content: 'Doc1 content' },
+                            { title: title + '_2', content: 'Doc2 content' },
+                            title + '_merged'
+                            );
+                            break;
+                        case 'EXPORT':
+                            res = await window.api.exportDocument({ title, content: 'Hello' }, 'C:\\Users\\User\\Desktop\\export.json');
+                            break;
+                        }
+
+                        console.log(res);
+                    });
+                    });
+
+                     //globeMaterial.color.set(color);
+                    const bgSelect = document.getElementById('bgSelector');
+                    function switchBG(type) {
+                        // Clean previous
+                        if (currentBG?.cleanup) {
+                            currentBG.cleanup();
+                            currentBG = null;
+                        }
+                        const accent = getComputedStyle(document.documentElement)
+                            .getPropertyValue('--accent')
+                            .trim();
+                        switch (type) {
+                            case "Orbital View (3D)":
+                                currentBG = initChatBackground();
+                                currentBG.setAccent(accent);
+                                break;
+
+                            case "Neural Network (3D)":
+                                currentBG = initCircuitBackground();
+                                currentBG.setAccent(accent);
+                                break;
+
+                            case "Code Rain (Matrix)":
+                                currentBG = initBotBackground();
+                                currentBG.setAccent(accent);
+                                break;
+
+                            case "Solid Black (Perf)":
+                                //document.body.style.background = "#000";
+                                currentBG.cleanup()
+                                break;
+
+                            case "Custom":
+                                currentBG = initImageBackground(file);
+                        }
+                    }
+
+                    const avatarMap = {
+                        "#06b6d4": "./assets/avatar_blue.png",
+                        "#3b82f6": "./assets/avatar_blue.png",
+                        "#f59e0b": "./assets/avatar_gold.png",
+                        "#22c55e": "./assets/avatar_green.png",
+                        "#b34639": "./assets/avatar_red.png",
+                        "#3C8E38": "./assets/avatar_emerald.png",
+                        "#7E4D5D": "./assets/avatar_rose.png",
+                        "#B87232": "./assets/avatar_gold.png",
+                        "#5F268D": "./assets/avatar_logicgate.png",
+                        "#627A5B": "./assets/avatar_emerald.png",
+                        "#914D79": "./assets/avatar_pink.png",
+                        "#9E8850": "./assets/avatar_yellow.png",
+                        "#712925": "./assets/avatar_ultron.png",
+                        "#2B2C2B": "./assets/avatar_black.png"
+                    };
+                    saveAppearance();
+
+                    const avatarImage = document.getElementById("avatarImage");
+
+                    colorSwatches.forEach(swatch => {
+                    swatch.addEventListener("click", () => {
+                            const color = swatch.dataset.color;
+
+                            document.documentElement.style.setProperty("--accent", color);
+                            const bgSelectS = document.getElementById('bgSelector');
+                            switchBG(bgSelectS.value)
+                            // swap avatar
+                            if (avatarMap[color]) {
+                            avatarImage.src = avatarMap[color];
+                            avatar = avatarMap[color];
+                            }
+
+                            // update selected ring
+                            colorSwatches.forEach(s => 
+                            s.classList.remove("ring-4", "ring-white")
+                            );
+                            swatch.classList.add("ring-4", "ring-white");
+                        });
+                    });
+
+                    bgSelect.addEventListener('change', e => switchBG(e.target.value));
+                    // Temperature slider
+                    const tempRange = document.getElementById('tempRange');
+                    const tempValue = document.getElementById('tempValue');
+                    if (tempRange && tempValue) {
+                    tempRange.addEventListener('input', () => {
+                        tempValue.textContent = tempRange.value;
+                    });
+                    }
+
+                    // Context window slider
+                    const contextRange = document.getElementById('contextRange');
+                    const contextValue = document.getElementById('contextValue');
+                    if (contextRange && contextValue) {
+                        contextRange.addEventListener('input', () => {
+                            contextValue.textContent = contextRange.value;
+                        });
+                    }
+                });
+
+            function handleImageFile(file) {
+                if (!file || !file.type.startsWith("image/")) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    if (currentBG?.cleanup) currentBG.cleanup();
+                    currentBG = initImageBackground(event.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+
+            const selector = document.getElementById("model-selector");
+            selector.addEventListener("change", (e) => {
+                window.api.updateEngine({ mode: selector.value });
+            });
+
+            const cselector = document.getElementById("character-selector");
+            selector.addEventListener("change", (e) => {
+                window.api.updateCharacter({ mode: selector.value });
+            });
             // Drag and drop for appearance
-            const dropZone = document.getElementById('bg-drop-zone');
+            const dropZone  = document.getElementById('bg-drop-zone');
+            const fileInput = document.getElementById('bgFileInput');
+
+            // Click = open picker
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // File picker
+            fileInput.addEventListener('change', (e) => {
+                handleImageFile(e.target.files[0]);
+            });
             dropZone.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                dropZone.classList.add('border-cyan-400');
+                dropZone.classList.add('border-accent');
             });
             dropZone.addEventListener('dragleave', (e) => {
                 e.preventDefault();
-                dropZone.classList.remove('border-cyan-400');
+                dropZone.classList.remove('border-accent');
             });
             dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
-                dropZone.classList.remove('border-cyan-400');
-                dropZone.querySelector('p').innerText = "Image Loaded: custom_bg.png";
-                dropZone.querySelector('i').classList.add('text-green-400');
-                dropZone.querySelector('i').classList.remove('text-cyan-600');
+                dropZone.classList.remove('border-accent/20');
+
+                const file = e.dataTransfer.files[0];
+                if (!file || !file.type.startsWith("image/")) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    switchBG("Custom");
+                    currentBG = initImageBackground(event.target.result);
+                };
+                reader.readAsDataURL(file);
             });
-        });
+                    
     </script>
 </body>
 </html>
