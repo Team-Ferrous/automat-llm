@@ -6,7 +6,12 @@ const { app } = require('electron');
 
 const OpenAI = require("openai");
 const { pipeline } = require("@xenova/transformers");
-const { faiss } = require("./embeddings");
+const { embeddingDim,
+  embeddingIndex,
+  Index, 
+  IndexFlatL2, 
+  IndexFlatIP 
+} = require("./embeddings");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 // main.js
@@ -28,13 +33,8 @@ function createGroqClient() {
 
 //const DOCUMENT_DIR = path.join(__dirname, "documents");
 const DOCUMENT_DIR = path.join(app.getPath('userData'), 'documents');
-
-
-let embedder = null;
-let generator = null;
-let embeddingIndex = null;
-let embeddingDim = 384;
-let docs = [];
+let embedder;
+let generator;
 
 // ---------------------------
 // Paths
@@ -47,9 +47,7 @@ const hashPath  = path.join(__dirname, "doc_hash.txt");
 
 if (!fs.existsSync(inputDir)) fs.mkdirSync(inputDir, { recursive: true });
 if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
-const index = new faiss.IndexFlatL2(embeddingDim);
-
-
+const index = new IndexFlatL2(embeddingDim);
 
 //----------------------------
 // Utility & Engine Functions
@@ -234,113 +232,124 @@ function computeDocumentsHash() {
 // Load Models
 // ---------------------------
 async function loadModels() {
-    console.log("Loading embedding model...");
-    embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
-
-    if (CONFIG.generationMode === "local") {
-        console.log("Loading local text-generation model...");
-        generator = await pipeline("text-generation", "Xenova/phi-2");
-    }
-}
-
-// ---------------------------
-// Initialize / Build Index
-// ---------------------------
-async function initialize() {
     try {
-        await loadModels();
-        const currentHash = computeDocumentsHash();
+        console.log("Loading embedding model...");
+        embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
+        console.log("Embedding model loaded!");
 
-        // Load cached index if possible
-        if (fs.existsSync(indexPath) && fs.existsSync(metaPath) && fs.existsSync(hashPath)) {
-            const savedHash = fs.readFileSync(hashPath, "utf-8");
-            if (savedHash === currentHash) {
-                docs = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
-
-                // load cached embeddings if you saved them somewhere
-                // const flatEmbeddings = ...;
-
-                embeddingIndex = new faiss.IndexFlatL2(embeddingDim);
-                // embeddingIndex.add(flatEmbeddings); <-- only if you have embeddings cached
-                console.log("⚡ Loaded cached index.");
-                return;
-            }
+        if (CONFIG.generationMode === "local") {
+            console.log("Loading local text-generation model...");
+            generator = await pipeline("text-generation", "Xenova/phi-2");
+            console.log("Generator model loaded!");
         }
-
-        // Rebuild index
-        console.log("🛠 Building new vector index...");
-        docs = [];
-        const files = fs.readdirSync(inputDir).filter(f => f.endsWith(".json"));
-
-        for (const file of files) {
-            const raw = fs.readFileSync(path.join(inputDir, file), "utf-8");
-            const data = JSON.parse(raw);
-
-            if (Array.isArray(data)) {
-                for (const item of data) {
-                    docs.push({ content: JSON.stringify(item), source: file });
-                }
-            } else if (typeof data === "object" && data !== null) {
-                docs.push({ content: JSON.stringify(data), source: file });
-            } else {
-                console.warn(`⚠️ File ${file} contains unsupported JSON type, skipping`);
-            }
-        }
-
-        if (docs.length === 0) {
-            console.warn("⚠️ No documents found. Skipping embedding index.");
-            return;
-        }
-
-        // Compute embeddings
-        const embeddings = [];
-        for (const doc of docs) {
-            const output = await embedder(doc.content, { pooling: "mean", normalize: true });
-            embeddings.push(output.data); // Float32Array
-        }
-
-        // Flatten embeddings for FAISS
-        const numVectors = embeddings.length;
-        const flatEmbeddings = new Float32Array(numVectors * embeddingDim);
-        embeddings.forEach((vec, i) => {
-            if (vec.length !== embeddingDim) throw new Error(`Embedding vector length mismatch`);
-            flatEmbeddings.set(vec, i * embeddingDim);
-        });
-
-        // ✅ Only one FAISS index and one add
-        // embeddings: Array of Float32Array
-        // Add embeddings
-        const arrayEmbeddings = embeddings.map(vec => Array.from(vec)); // number[][]
-        arrayEmbeddings.forEach(vec => index.add(vec)); // add one by one
-
-
-        // If your binding supports batch add, you could just do:
-        // index.add(arrayEmbeddings);
-        // Save the index for later
-        index.write(indexPath);
-        fs.writeFileSync(metaPath, JSON.stringify(docs));
-        fs.writeFileSync(hashPath, currentHash);
-        console.log(`✅ FAISS index built with ${docs.length} documents.`);
     } catch (err) {
-        console.error("Initialization failed:", err);
+        console.error("❌ Failed to load models:", err);
+        // optional: show an Electron dialog or exit gracefully
+        // dialog.showErrorBox("Model Load Error", err.message);
     }
 }
 
+function getAllDocsFromInputJSON(inputFolder) {
+    const files = fs.readdirSync(inputFolder).filter(f => f.endsWith(".json"));
+    const docs = [];
+
+    for (const file of files) {
+        const filePath = path.join(inputFolder, file);
+        const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+
+        // Assume each JSON is an array of objects or a single object
+        if (Array.isArray(data)) {
+            docs.push(...data);
+        } else {
+            docs.push(data);
+        }
+    }
+
+    return docs;
+}
+
+async function initialize() {
+    await loadModels(); // load embedder & generator
+
+    let embeddingIndex;
+    const currentHash = computeDocumentsHash();
+    const hasCache = fs.existsSync(indexPath) &&
+                     fs.existsSync(metaPath) &&
+                     fs.existsSync(hashPath);
+
+    if (hasCache) {
+        const savedHash = fs.readFileSync(hashPath, "utf-8");
+        docs = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+
+        if (savedHash === currentHash) {
+            // Load cached embeddings
+            const cachedEmbeddings = JSON.parse(fs.readFileSync(indexPath, "utf-8")); //IndexFlatL2.read(indexPath);
+            embeddingIndex = new IndexFlatL2({ dims: embeddingDim });
+            await embeddingIndex.add(cachedEmbeddings) //.add(cachedEmbeddings);
+            console.log(`⚡ Loaded cached FAISS index, ntotal: ${embeddingIndex.ntotal()}`);
+        } else {
+            // Rebuild index from existing docs
+            embeddingIndex = new Index({ type: 'HNSW', dims: embeddingDim });
+            const embeddings = [];
+            for (const doc of docs) {
+                const emb = await embedder(doc.content, { pooling: "mean", normalize: true });
+                embeddings.push(Array.from(emb.data));
+            }
+            await embeddingIndex.add(embeddings);
+            console.log(`⚡ Rebuilt FAISS index, ntotal: ${embeddingIndex.ntotal()}`);
+        }
+    } else {
+        // No cache: build from scratch
+        try{
+            const inputFolder = path.join(__dirname, "Input_JSON");
+            docs = getAllDocsFromInputJSON(inputFolder);
+            console.log(`⚡ Loaded ${docs.length} documents from Input_JSON`);
+            embeddingIndex = new Index({ type: 'HNSW', dims: embeddingDim });
+            const embeddings = [];
+            for (const doc of docs) {
+                // Skip anything that isn’t an object or missing content
+                if (doc && typeof doc.content === "string" && doc.content.trim() !== "") {
+                    const emb = await embedder(doc.content, { pooling: "mean", normalize: true });
+                    embeddings.push(Array.from(emb.data));
+                } else {
+                    console.warn("⚠️ Skipping doc with invalid content:", doc);
+                }
+            }
+            await embeddingIndex.add(embeddings);
+            console.log(`⚡ Built new FAISS index, ntotal: ${embeddingIndex.ntotal()}`);
+        }catch (err) {
+            console.error("FAISS search failed:", err);
+            return [];
+        }
+    }
+
+    // Save for next time
+    const embeddingsArray = await embeddingIndex.getAllVectors(); // pseudo-method
+    fs.writeFileSync(metaPath, JSON.stringify(docs), "utf-8");
+    fs.writeFileSync(indexPath, JSON.stringify(embeddingsArray), "utf-8");
+    fs.writeFileSync(hashPath, currentHash, "utf-8");
+
+    return embeddingIndex;
+}
 // ---------------------------
 // Retrieval
 // ---------------------------
-async function retrieveTopK(query, k = 5) {
-    if (!embeddingIndex || !embedder) return [];
+async function retrieveTopK(queryVector, k = 5) {
+    if (!embeddingIndex || embeddingIndex.ntotal === 0) return [];
 
-    const output = await embedder(query, { pooling: "mean", normalize: true });
+    // queryVector must be a 1D array: [0.1, 0.2, ..., 0.384]
+    try {
+        const results = await embeddingIndex.search(queryVector, k);
 
-    if (!output?.data) return [];
-    const result = embeddingIndex.searchKnn(output.data, k);
+        if (!results?.labels) return [];
 
-    if (!result?.neighbors) return [];
-    return result.neighbors.map(i => docs[i]).filter(Boolean);
+        // map labels to docs
+        return results.labels.map(i => docs[i]).filter(Boolean);
+    } catch (err) {
+        console.error("FAISS search failed:", err);
+        return [];
+    }
 }
-
 // ---------------------------
 // Generation
 // ---------------------------
@@ -397,22 +406,34 @@ async function generateResponse(prompt) {
 // ---------------------------
 async function sendMessage(userInput) {
     try {
+        console.log("STEP 1: received message");
+
         if (userInput.toLowerCase().includes("image")) return "IMAGE_DONE";
 
+        console.log("STEP 2: retrieving context");
         const retrieved = await retrieveTopK(userInput, 10);
-        const context   = retrieved.map(d => d.content).join("\n");
 
-        const fullPrompt = `
-            Context:
-            ${context}
+        console.log("STEP 3: retrieved docs:", retrieved.length);
 
-            User:
-            ${userInput}
+        const context = retrieved
+            .map(d => d?.content || "")
+            .filter(Boolean)
+            .join("\n");
 
-            Respond naturally and helpfully.
-        `;
+        console.log("STEP 4: building prompt");
 
-        return await generateResponse(fullPrompt);
+        const fullPrompt = context
+            ? `Context:\n${context}\n\nUser:\n${userInput}\n\nRespond naturally and helpfully.`
+            : `User:\n${userInput}\n\nRespond naturally and helpfully.`;
+
+        console.log("STEP 5: generating response");
+
+        const response = await generateResponse(fullPrompt);
+
+        console.log("STEP 6: done");
+
+        return response;
+
     } catch (err) {
         console.error("Error generating response:", err);
         return null;

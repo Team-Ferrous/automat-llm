@@ -3,9 +3,8 @@ const fs = require("fs");
 const decoder        = require('./decoder');
 const instanceEngine = require('./instance_engine');
 const path = require("path");
-
+const { Worker } = require('worker_threads'); // <-- important!
 const { 
-    initialize, 
     sendMessage, 
     setGroqKey, 
     setGenerationMode, 
@@ -36,12 +35,29 @@ async function createWindow() {
     mainWindow.loadFile("index.html");
 }
 
+//app.whenReady().then(async () => {
+    //await initialize();   // build/load vector index FIRST
+    //await createWindow(); // then show UI
+//});
+
+function initializeWorker() {
+    return new Promise((resolve, reject) => {
+        const worker = new Worker('./initialize.js');
+        worker.on('message', resolve);
+        worker.on('error', reject);
+        worker.on('exit', (code) => {
+            if (code !== 0) reject(new Error(`Worker stopped with code ${code}`));
+        });
+    });
+}
+
+// In main
 app.whenReady().then(async () => {
-
-    await initialize();   // build/load vector index FIRST
-    await createWindow(); // then show UI
+    await createWindow();
+    initializeWorker().then((embeddingIndex) => {
+        console.log("FAISS loaded in worker!");
+    });
 });
-
 
 ipcMain.handle('open-file-dialog', async () => {
     const result = await dialog.showOpenDialog({
