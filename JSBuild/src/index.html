@@ -51,68 +51,33 @@
 
     const { accent, theme, background } = JSON.parse(stored);
 
-    // Apply accent
-    if (accent) document.documentElement.style.setProperty('--accent', accent);
+            // Apply accent
+            if (accent) document.documentElement.style.setProperty('--accent', accent);
 
-    // Apply theme
-    if (theme) document.body.dataset.theme = theme;
-    function switchBG(type) {
-            // Clean previous
-            if (currentBG?.cleanup) {
-                currentBG.cleanup();
-                currentBG = null;
-            }
-            const accent = getComputedStyle(document.documentElement)
-                .getPropertyValue('--accent')
-                .trim();
-            switch (type) {
-                case "Orbital View (3D)":
-                    currentBG = initChatBackground();
-                    currentBG.setAccent(accent);
-                    break;
+            // Apply theme
+            if (theme) document.body.dataset.theme = theme;
+            const avatarImage = document.getElementById("avatarImage");
+            const colorSwatches = document.querySelectorAll('[data-color]');
+            colorSwatches.forEach(swatch => {
+            swatch.addEventListener("click", () => {
+                    const color = swatch.dataset.color;
+                    document.documentElement.style.setProperty("--accent", color);
+                    const bgSelectS = document.getElementById('bgSelector');
+                    switchBG(bgSelectS.value)
 
-                case "Neural Network (3D)":
-                    currentBG = initCircuitBackground();
-                    currentBG.setAccent(accent);
-                    break;
-
-                case "Code Rain (Matrix)":
-                    currentBG = initBotBackground();
-                    currentBG.setAccent(accent);
-                    break;
-
-                case "Solid Black (Perf)":
-                    //document.body.style.background = "#000";
-                    currentBG.cleanup()
-                    break;
-
-                case "Custom":
-                    currentBG = initImageBackground(file);
-            }
-        }
-
- 
-                    const avatarImage = document.getElementById("avatarImage");
-                    const colorSwatches = document.querySelectorAll('[data-color]');
-                    colorSwatches.forEach(swatch => {
-                    swatch.addEventListener("click", () => {
-                            const color = swatch.dataset.color;
-                            document.documentElement.style.setProperty("--accent", color);
-                            const bgSelectS = document.getElementById('bgSelector');
-                            switchBG(bgSelectS.value)
-
-                            // update selected ring
-                            colorSwatches.forEach(s => 
-                            s.classList.remove("ring-4", "ring-white")
-                            );
-                            swatch.classList.add("ring-4", "ring-white");
-                        });
-                    });
+                    // update selected ring
+                    colorSwatches.forEach(s => 
+                    s.classList.remove("ring-4", "ring-white")
+                    );
+                    swatch.classList.add("ring-4", "ring-white");
+                });
+            });
             // Apply background
             const bgSelect = document.getElementById('bgSelector'); // <-- define it
             if (background && bgSelect) {
                 bgSelect.value = background;
                 switchBG(background); // your existing function
+                saveAppearance();
             }
 
             // Make inline body styles match
@@ -367,6 +332,7 @@
 .agent-textarea{
     grid-column:1 / span 2;
     height:90px;
+    width: 50%;
 }
 
 .agent-input,
@@ -648,6 +614,28 @@
                                     const models = await hub.listHuggingFaceModels();
                                     console.log("HF models:", models.slice(0,10));
                                 }
+
+                                function HF_Login() {
+                                    window.open("https://huggingface.co/settings/tokens", "_blank");
+                                    const token = prompt("Paste your HuggingFace token:");
+
+                                    if (token) {
+                                        localStorage.setItem("hf_token", token);
+                                    }
+                                }
+
+                                function MS_Login() {
+
+                                    window.open("https://modelscope.cn/my/access/token", "_blank");
+                                    const token = prompt("Paste your ModelScope token:");
+
+                                    if (token) {
+                                        localStorage.setItem("ms_token", token);
+                                    }
+                                }
+
+                                document.getElementById("hf-login").addEventListener("click", HF_Login);
+                                document.getElementById("ms-login").addEventListener("click", MS_Login);
                             </script>
                         </div>
                         <!-- Groq mode panels -->
@@ -665,22 +653,22 @@
                     <div class="glass-panel p-6 rounded-xl" id="local-model-panel">
                         <h3 class="text-accent font-mono">Local Model</h3>
                         <select id="local-model-selector" class="w-full">
-                            <option class="text-accent font-mono">LLaMA 2/3</option>
-                            <option class="text-accent font-mono">Mistral 7b</option>
-                            <option class="text-accent font-mono">Mixtral</option>
-                            <option class="text-accent font-mono">GPT-Q/GPT4All</option>
-                            <option class="text-accent font-mono">deeperhermes</option>
-                            <option class="text-accent font-mono">dolphin3</option>
-                            <option class="text-accent font-mono">groq-code-cli</option> 
-                            <option class="text-accent font-mono">dolphin-2.5-mixtral-8x7b</option> 
-                            <option class="text-accent font-mono">MLewd-v2.4-13B-GGUF</option>
-                            <option class="text-accent font-mono">dolphin-2.5-mixtral-8x7b-GGUF</option>
-                            <option class="text-accent font-mono">goliath-120b-GGUF</option> 
-                            <option class="text-accent font-mono">L3-8B-Stheno-v3.2</option>
-                            <option class="text-accent font-mono">L3-8B-Niitama-v1</option> 
-                            <option class="text-accent font-mono">NeuralStar_FusionWriter_4x7b-GGUF</option> 
-                            <option class="text-accent font-mono">Noro-Hermes-3x7B-GGUF</option> 
-                            <option class="text-accent font-mono">HeroBophades-3x7B</option>
+                            <option class="font-mono">LLaMA 2/3</option>
+                            <option class="font-mono">Mistral 7b</option>
+                            <option class="font-mono">Mixtral</option>
+                            <option class="font-mono">GPT-Q/GPT4All</option>
+                            <option class="font-mono">deeperhermes</option>
+                            <option class="font-mono">dolphin3</option>
+                            <option class="font-mono">groq-code-cli</option> 
+                            <option class="font-mono">dolphin-2.5-mixtral-8x7b</option> 
+                            <option class="font-mono">MLewd-v2.4-13B-GGUF</option>
+                            <option class="font-mono">dolphin-2.5-mixtral-8x7b-GGUF</option>
+                            <option class="font-mono">goliath-120b-GGUF</option> 
+                            <option class="font-mono">L3-8B-Stheno-v3.2</option>
+                            <option class="font-mono">L3-8B-Niitama-v1</option> 
+                            <option class="font-mono">NeuralStar_FusionWriter_4x7b-GGUF</option> 
+                            <option class="font-mono">Noro-Hermes-3x7B-GGUF</option> 
+                            <option class="font-mono">HeroBophades-3x7B</option>
                         </select>
                         </br>
                         <p class="text-xs text-amber-400 mt-2">
@@ -705,6 +693,119 @@
                     </div>
                 </div>
                 <script>
+                    // -------------------------------
+                    // Local Model Selector Manager
+                    // -------------------------------
+                    const localSelector = document.getElementById("local-model-selector");
+
+                    // Keep a list of installed local models
+                    let installedModels = [];
+                    function loadModel(modelName) {
+
+                        // Running inside Electron
+                        if (window.api && typeof window.api.loadModel === "function") {
+                            window.api.loadModel(modelName);
+                            return;
+                        }
+
+                        // Fallback for browser / dev mode
+                        console.log("Model load requested:", modelName);
+                    }
+
+                    // Initialize dropdown: mark installed models green, others red
+                    async function initLocalSelector() {
+                        installedModels =  []
+                        /*
+                            "LLaMA 2", 
+                            "LLaMA 3", 
+                            "Mistral 7b", 
+                            "Mixtral", 
+                            "GPT-Q/GPT4All", 
+                            "deeperhermes", 
+                            "dolphin3", 
+                            "groq-code-cli",
+                            "dolphin-2.5-mixtral-8x7b",
+                            "MLewd-v2.4-13B-GGUF",
+                            "dolphin-2.5-mixtral-8x7b-GGUF",
+                            "goliath-120b-GGUF",
+                            "L3-8B-Stheno-v3.2",
+                            "L3-8B-Niitama-v1",
+                            "NeuralStar_FusionWriter_4x7b-GGUF",
+                            "Noro-Hermes-3x7B-GGUF",
+                            "HeroBophades-3x7B"
+                        */
+                        // TBA: make Installed Models call this and apply the results 
+                        //await modelHub.getLocalModels(); // ["Mistral 7b", "dolphin3", ...]
+                        Array.from(localSelector.options).forEach(option => {
+                            const isLocal      = installedModels.includes(option.text);
+                            option.style.color = isLocal ? "limegreen" : "red";
+                            option.title       = isLocal ? "Loaded locally" : "Available remotely";
+
+                            // auto-load green models
+                            if (isLocal) {
+                                loadModel(option.text);
+                            }
+                        });
+                    }
+
+                    // Update option color / status dynamically
+                    function updateOptionStatus(modelName, isLocal) {
+                        const option = Array.from(localSelector.options).find(o => o.text === modelName);
+                        if (!option) return;
+
+                        option.style.color = isLocal ? "limegreen" : "red";
+                        option.title = isLocal ? "Loaded locally" : "Available remotely";
+
+                        // Load the model immediately if it became local
+                        if (isLocal) {
+                            loadModel(modelName);
+                        }
+                    }
+
+                    // Add remote models dynamically (from search results)
+                    function addRemoteModel(modelName) {
+                        const exists = Array.from(localSelector.options).some(o => o.text === modelName);
+                        if (exists) return;
+
+                        const opt = document.createElement("option");
+                        opt.text = modelName;
+                        opt.style.color = "red";
+                        opt.title = "Available remotely";
+                        localSelector.appendChild(opt);
+                    }
+
+                    // Handle a model being downloaded
+                    async function onModelDownloaded(modelName) {
+                        // Update local list
+                        if (!installedModels.includes(modelName)) installedModels.push(modelName);
+
+                        // Update UI
+                        updateOptionStatus(modelName, true);
+
+                        // Register in GeneratorRegistry
+                        registerGenerator(modelName);
+
+                        // Load into memory
+                        await loadModel(modelName);
+                    }
+
+                    // Event listener for user selecting a model from dropdown
+                    localSelector.addEventListener("change", async (e) => {
+                        const selected = e.target.value;
+
+                        if (!installedModels.includes(selected)) {
+                            console.log(`Model "${selected}" is not downloaded yet!`);
+                            return;
+                        }
+
+                        console.log(`Switching to model: ${selected}`);
+                        await loadModel(selected); // ensure runtime has it loaded
+                    });
+
+                    // Call this on app startup
+                    initLocalSelector();
+
+
                     const input  = document.getElementById("groq-key-input");
                     const button = document.getElementById("groq-key-confirm");
                     const modeSelector = document.getElementById("modeSelector");
@@ -984,18 +1085,18 @@
                     </h3>
                     <div class="space-y-6">
                         <div>
-                            <label class="flex justify-between text-sm mb-2">
+                            <label class="text-accent flex justify-between text-sm mb-2">
                                 <span>Temperature (Creativity)</span>
                                 <span id="tempValue" class="text-accent font-mono">0.75</span>
                             </label>
                             <input id="tempRange" type="range" min="0.1" max="1.5" step="0.05" value="0.75" class="w-full">
                         </div>
                         <div>
-                            <label class="flex justify-between text-sm mb-2">
+                            <label class="text-accent flex justify-between text-sm mb-2">
                                 <span>Context Window</span>
                                 <span id="contextValue" class="text-accent font-mono">4096</span>
                             </label>
-                            <input id="contextRange" type="range" min="1024" max="8192" step="512" value="4096" class="w-full">
+                            <input id="contextRange" class="text-accent" type="range" min="1024" max="8192" step="512" value="4096" class="w-full">
                         </div>
                         <div>
                             <label class="text-accent font-mono block text-sm mb-2">Model File (Groq-use Only)</label>
@@ -1177,38 +1278,38 @@
                 <div class="agent-config glass-panel agent-instance">
                     <h2 class="agent-title text-accent font-mono">Agent Configuration</h2>
                     <hr>
-                    <div class="agent-form">
+                    <div class="agent-form ">
                         <label class="agent-label text-accent font-mono">Agent Name</label>
-                        <input class="agent-input agent-name" placeholder="Agent Name">
+                        <input class="agent-input agent-name w-48" placeholder="Agent Name">
                         <label class="agent-label text-accent font-mono">Model</label>
                         <div class="model-row">
                             <select id="groq-select" class="agent-select agent-model">
-                                <option class="text-accent font-mono">openai/gpt-oss-20b</option>
-                                <option class="text-accent font-mono">openai/gpt-oss-120b</option>
-                                <option class="text-accent font-mono">llama-3.1-8b-instant</option>
-                                <option class="text-accent font-mono">llama-3.3-70b-versatile</option>
-                                <option class="text-accent font-mono">whisper-large-v3</option>
-                                <option class="text-accent font-mono">whisper-large-v3-turbo</option>
-                                <option class="text-accent font-mono">groq/compound</option>
-                                <option class="text-accent font-mono">groq/compound-mini</option>
+                                <option class="font-mono">openai/gpt-oss-20b</option>
+                                <option class="font-mono">openai/gpt-oss-120b</option>
+                                <option class="font-mono">llama-3.1-8b-instant</option>
+                                <option class="font-mono">llama-3.3-70b-versatile</option>
+                                <option class="font-mono">whisper-large-v3</option>
+                                <option class="font-mono">whisper-large-v3-turbo</option>
+                                <option class="font-mono">groq/compound</option>
+                                <option class="font-mono">groq/compound-mini</option>
                             </select>
                             <select id="local-select" class="agent-select agent-model" style="display:none;" disabled>
-                                <option class="text-accent font-mono">LLaMA 2/3</option>
-                                <option class="text-accent font-mono">Mistral 7b</option>
-                                <option class="text-accent font-mono">Mixtral</option>
-                                <option class="text-accent font-mono">GPT-Q/GPT4All</option>
-                                <option class="text-accent font-mono">deeperhermes</option>
-                                <option class="text-accent font-mono">dolphin3</option>
-                                <option class="text-accent font-mono">groq-code-cli</option> 
-                                <option class="text-accent font-mono">dolphin-2.5-mixtral-8x7b</option> 
-                                <option class="text-accent font-mono">MLewd-v2.4-13B-GGUF</option>
-                                <option class="text-accent font-mono">dolphin-2.5-mixtral-8x7b-GGUF</option>
-                                <option class="text-accent font-mono">goliath-120b-GGUF</option> 
-                                <option class="text-accent font-mono">L3-8B-Stheno-v3.2</option>
-                                <option class="text-accent font-mono">L3-8B-Niitama-v1</option> 
-                                <option class="text-accent font-mono">NeuralStar_FusionWriter_4x7b-GGUF</option> 
-                                <option class="text-accent font-mono">Noro-Hermes-3x7B-GGUF</option> 
-                                <option class="text-accent font-mono">HeroBophades-3x7B</option>
+                                <option class="font-mono">LLaMA 2/3</option>
+                                <option class="font-mono">Mistral 7b</option>
+                                <option class="font-mono">Mixtral</option>
+                                <option class="font-mono">GPT-Q/GPT4All</option>
+                                <option class="font-mono">deeperhermes</option>
+                                <option class="font-mono">dolphin3</option>
+                                <option class="font-mono">groq-code-cli</option> 
+                                <option class="font-mono">dolphin-2.5-mixtral-8x7b</option> 
+                                <option class="font-mono">MLewd-v2.4-13B-GGUF</option>
+                                <option class="font-mono">dolphin-2.5-mixtral-8x7b-GGUF</option>
+                                <option class="font-mono">goliath-120b-GGUF</option> 
+                                <option class="font-mono">L3-8B-Stheno-v3.2</option>
+                                <option class="font-mono">L3-8B-Niitama-v1</option> 
+                                <option class="font-mono">NeuralStar_FusionWriter_4x7b-GGUF</option> 
+                                <option class="font-mono">Noro-Hermes-3x7B-GGUF</option> 
+                                <option class="font-mono">HeroBophades-3x7B</option>
                             </select>
                             <label class="local-toggle text-accent font-mono">
                                 <input type="checkbox" class="local-model-toggle">
@@ -1300,87 +1401,89 @@
         }
     });
 
-    // Optional: Initialize new agents with proper toggle
-function initializeAgent(agentEl) {
-    const checkbox = agentEl.querySelector('.local-model-toggle');
-    if (!checkbox) return;
+        // Optional: Initialize new agents with proper toggle
+        function initializeAgent(agentEl) {
+            const checkbox = agentEl.querySelector('.local-model-toggle');
+            if (!checkbox) return;
 
-    // Trigger the toggle once to set initial state
-    checkbox.dispatchEvent(new Event('change'));
-}
+            // Trigger the toggle once to set initial state
+            checkbox.dispatchEvent(new Event('change'));
+        }
 
-// Example: spawning a new agent
-function addAgent() {
-    const template = document.getElementById('agent-template');
-    const clone = template.content.cloneNode(true);
-    const container = clone.querySelector('.agent-instance');
+        // Example: spawning a new agent
+        function addAgent() {
+            const template = document.getElementById('agent-template');
+            const clone = template.content.cloneNode(true);
+            const container = clone.querySelector('.agent-instance');
 
-    document.getElementById('workflow-steps').appendChild(clone);
-    initializeAgent(container);
+            document.getElementById('workflow-steps').appendChild(clone);
+            initializeAgent(container);
 
-    // After adding agent, update + Step button state
-    updateAddStepButton();
-}
+            // After adding agent, update + Step button state
+            updateAddStepButton();
+        }
 
-// Enable / disable + Step button based on agent existence
-function updateAddStepButton() {
-    const agents = document.querySelectorAll('.agent-instance');
-    addStepBtn.disabled = agents.length === 0;
-}
+        // Enable / disable + Step button based on agent existence
+        function updateAddStepButton() {
+            const agents = document.querySelectorAll('.agent-instance');
+            addStepBtn.disabled = agents.length === 0;
+        }
         let workflowStepCounter = 0;
 
-function addWorkflowStep(){
+        function addWorkflowStep(){
 
-    const template = document.getElementById("workflow-step-template");
-    const container = document.getElementById("workflow-steps");
+            const template = document.getElementById("workflow-step-template");
+            const container = document.getElementById("workflow-steps");
 
-    const clone = template.content.cloneNode(true);
+            const clone = template.content.cloneNode(true);
 
-    const stepIndex = ++workflowStepCounter;
+            const stepIndex = ++workflowStepCounter;
 
-    const indexLabel = clone.querySelector(".workflow-index");
-    indexLabel.textContent = stepIndex;
+            const indexLabel = clone.querySelector(".workflow-index");
+            indexLabel.textContent = stepIndex;
 
-    const removeBtn = clone.querySelector(".workflow-remove");
+            const removeBtn = clone.querySelector(".workflow-remove");
 
-    removeBtn.addEventListener("click", (e)=>{
-        e.target.closest(".workflow-step").remove();
-        reindexWorkflow();
-    });
+            removeBtn.addEventListener("click", (e)=>{
+                e.target.closest(".workflow-step").remove();
+                reindexWorkflow();
+            });
 
-    populateAgentDropdown(clone);
+            populateAgentDropdown(clone);
 
-    container.appendChild(clone);
-}
-function populateAgentDropdown(stepClone){
+            container.appendChild(clone);
+        }
 
-    const agentSelect = stepClone.querySelector(".workflow-agent");
+        function populateAgentDropdown(stepClone){
 
-    const agents = document.querySelectorAll(".agent-instance");
+            const agentSelect = stepClone.querySelector(".workflow-agent");
 
-    agents.forEach(agent => {
+            const agents = document.querySelectorAll(".agent-instance");
 
-        const nameInput = agent.querySelector(".agent-name");
+            agents.forEach(agent => {
 
-        const option = document.createElement("option");
-        option.value = nameInput.value || "Unnamed Agent";
-        option.textContent = option.value;
+                const nameInput = agent.querySelector(".agent-name");
 
-        agentSelect.appendChild(option);
+                const option = document.createElement("option");
+                option.value = nameInput.value || "Unnamed Agent";
+                option.textContent = option.value;
 
-    });
+                agentSelect.appendChild(option);
 
-}
-function reindexWorkflow(){
+            });
 
-    const steps = document.querySelectorAll(".workflow-step");
+        }
 
-    steps.forEach((step,i)=>{
-        step.querySelector(".workflow-index").textContent = i+1;
-    });
+        function reindexWorkflow(){
 
-    workflowStepCounter = steps.length;
-}
+            const steps = document.querySelectorAll(".workflow-step");
+
+            steps.forEach((step,i)=>{
+                step.querySelector(".workflow-index").textContent = i+1;
+            });
+
+            workflowStepCounter = steps.length;
+        }
 
         // --- 1. Navigation ---
         function switchTab(tabId) {
@@ -1410,6 +1513,75 @@ function reindexWorkflow(){
         });
 
         let agentCounter = 0;
+
+         function switchBG(type) {
+            // Clean previous
+            if (currentBG?.cleanup) {
+                currentBG.cleanup();
+                currentBG = null;
+            }
+            const accent = getComputedStyle(document.documentElement)
+                .getPropertyValue('--accent')
+                .trim();
+            switch (type) {
+                case "Orbital View (3D)":
+                    currentBG = initChatBackground();
+                    currentBG.setAccent(accent);
+                    break;
+
+                case "Neural Network (3D)":
+                    currentBG = initCircuitBackground();
+                    currentBG.setAccent(accent);
+                    break;
+
+                case "Code Rain (Matrix)":
+                    currentBG = initBotBackground();
+                    currentBG.setAccent(accent);
+                    break;
+
+                case "Solid Black (Perf)":
+                    if (currentBG?.cleanup) {
+                        currentBG.cleanup();
+                        currentBG = null;
+                    }
+                    break;
+
+                case "Custom":
+                    currentBG = initImageBackground(file);
+            }
+        }
+
+        function loadSavedAppearance() {
+            const savedTheme = localStorage.getItem('cybel-theme') || 'dark';
+            const saved = localStorage.getItem("appearanceConfig");
+            if (!saved){ 
+                console.log("no saved theme");
+                return;
+            }
+
+            const appearance = JSON.parse(saved);
+            if (appearance.accent) {
+                document.documentElement.style.setProperty('--accent', appearance.accent);
+            }
+
+            if (appearance.theme === "light") {
+                document.documentElement.classList.add("light");
+                document.documentElement.classList.remove("dark");
+            } else {
+                document.documentElement.classList.add("dark");
+                document.documentElement.classList.remove("light");
+            }
+
+            if (appearance.background) {
+                const bgSelect = document.getElementById("bgSelector");
+                if (bgSelect) {
+                    bgSelect.value = appearance.background;
+                }
+                switchBG(appearance.background);
+                setTheme(savedTheme);
+                saveAppearance();
+            }
+        }
 
 function createAgent() {
 
@@ -1461,7 +1633,22 @@ function createAgent() {
     // Optional: initialize button state on load
     addStepBtn.disabled = !agentExists;
 
-         // --- Bot Background: Matrix Rain ---
+      // --- Theme System ---
+        function setTheme(mode) {
+            if (mode === 'light') {
+                document.body.classList.add('light-theme');
+            } else {
+                document.body.classList.remove('light-theme');
+            }
+            localStorage.setItem('cybel-theme', mode);
+        }
+
+        //function loadSavedTheme() {
+        //    const saved = localStorage.getItem('cybel-theme') || 'dark';
+        //    setTheme(saved);
+        //}
+        
+        // --- Bot Background: Matrix Rain ---
         function initBotBackground() {
             const canvas = document.getElementById('bg-bot');
             if (!canvas) return;
@@ -1493,16 +1680,27 @@ function createAgent() {
             }, 33);
         }
 
+        // FIX: loadSavedAccent also updates globe after Three.js is ready
+        function loadSavedAccent() {
+            const saved = localStorage.getItem('cybel-accent');
+            if (!saved) return;
+            document.documentElement.style.setProperty('--primary-accent', saved);
+            document.documentElement.style.setProperty('--glass-border', saved + '55');
+
+            document.querySelectorAll('.accent-color').forEach(el => {
+                const color = el.getAttribute('onclick').match(/'(#[^']+)'/)?.[1];
+                if (color === saved) el.classList.add('active');
+            });
+        }
         // --- Init ---
         window.addEventListener('DOMContentLoaded', () => {
-            loadSavedTheme();
-            loadSavedAccent();
             lucide.createIcons();
-            initChatBackground();
+            loadSavedAppearance();
+            //initChatBackground();
+
             // After globe is built, apply saved accent to it
             const savedAccent = localStorage.getItem('cybel-accent');
             if (savedAccent) updateGlobeAccent();
-            initBotBackground();
 
             const dropZoneEl = document.getElementById('bg-drop-zone');
             dropZoneEl.addEventListener('dragover', (e) => {
@@ -2338,6 +2536,7 @@ setInterval(draw, 50);
                     });
                     });
 
+
                      //globeMaterial.color.set(color);
                     const bgSelect = document.getElementById('bgSelector');
                     function switchBG(type) {
@@ -2366,8 +2565,10 @@ setInterval(draw, 50);
                                 break;
 
                             case "Solid Black (Perf)":
-                                //document.body.style.background = "#000";
-                                currentBG.cleanup()
+                                if (currentBG?.cleanup) {
+                                    currentBG.cleanup();
+                                    currentBG = null;
+                                }
                                 break;
 
                             case "Custom":
@@ -2488,6 +2689,7 @@ setInterval(draw, 50);
                 reader.onload = (event) => {
                     switchBG("Custom");
                     currentBG = initImageBackground(event.target.result);
+                    saveAppearance();
                 };
                 reader.readAsDataURL(file);
             });

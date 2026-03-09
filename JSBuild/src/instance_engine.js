@@ -12,6 +12,7 @@ And your agent gets secrets with a simple curl endpoint:
 vestauth agent curl "https://as2.dotenvx.com/get?key=KEY"
 */
 
+//This is for the AI Agents Control Only
 class InstanceEngine {
   constructor() {
     this.instances = new Map();

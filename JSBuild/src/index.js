@@ -2,7 +2,6 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const decoder        = require('./decoder');
 const instanceEngine = require('./instance_engine');
-const path = require("path");
 const { Worker } = require('worker_threads'); // <-- important!
 const { 
     sendMessage, 
@@ -19,6 +18,30 @@ const {
     exportDocument,
     setEngine
 } = require('./backend');
+
+const { spawn } = require("child_process");
+const path = require("path");
+
+let pythonServer;
+
+//specifically and ONLY for SPARC3D-SDF and 3d Asset Gen models in Python
+function startPythonServer() {
+    const script = path.join(__dirname, "python", "sparc_server.py");
+
+    pythonServer = spawn("python", [script]);
+
+    pythonServer.stdout.on("data", (data) => {
+        console.log(`PYTHON: ${data}`);
+    });
+
+    pythonServer.stderr.on("data", (data) => {
+        console.error(`PYTHON ERROR: ${data}`);
+    });
+
+    pythonServer.on("close", (code) => {
+        console.log(`Python server exited with code ${code}`);
+    });
+}
 
 let mainWindow;
 let vectorStore;
@@ -54,6 +77,7 @@ function initializeWorker() {
 // In main
 app.whenReady().then(async () => {
     await createWindow();
+    startPythonServer();
     initializeWorker().then((embeddingIndex) => {
         console.log("FAISS loaded in worker!");
     });
@@ -87,6 +111,11 @@ ipcMain.handle("chat:setGroqKey", async (_, key) => {
 
 ipcMain.handle("chat:setMode", async (_, mode) => {
     setGenerationMode(mode);
+    return true;
+});
+
+ipcMain.handle("engine:loadModel", async (_, mName) => {
+    //loadModel(mName)
     return true;
 });
 
@@ -183,6 +212,14 @@ ipcMain.handle("engine:ingest_documents", async (event, { instanceId, files }) =
   }
 });
 
+ipcMain.handle("get-local-models", async () => {
+    const modelsDir = path.join(__dirname, "models"); // adjust path
+    if (!fs.existsSync(modelsDir)) return [];
+
+    const files = fs.readdirSync(modelsDir);
+    // assume each model has a folder named after it
+    return files.filter(f => fs.statSync(path.join(modelsDir, f)).isDirectory());
+});
 // -------------CHAT SPECIFIC FEATURES--------------
 ipcMain.handle("chat:send", async (_, userInput) => {
     //console.log("backend:", require("./backend"));

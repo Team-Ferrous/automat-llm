@@ -1,0 +1,10 @@
+#Comm API/Chennel
+flask
+#SPARC3D_SDF Requirements
+kaolin 
+#NewBie AI Reqs
+diffusers 
+transformers 
+accelerate 
+safetensors 
+#torch #ugh....

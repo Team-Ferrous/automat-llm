@@ -244,7 +244,7 @@ async function loadModels() {
         }
     } catch (err) {
         console.error("❌ Failed to load models:", err);
-        // optional: show an Electron dialog or exit gracefully
+        alert("❌ Failed to load models:", err.message); // optional: show an Electron dialog or exit gracefully
         // dialog.showErrorBox("Model Load Error", err.message);
     }
 }
@@ -404,12 +404,75 @@ async function generateResponse(prompt) {
 // ---------------------------
 // Public API
 // ---------------------------
+function detectIntent(prompt) {
+
+    const p = prompt.toLowerCase();
+
+    if (p.includes("image") || p.includes("picture") || p.includes("draw"))
+        return "image";
+
+    if (p.includes("3d") || p.includes("model") || p.includes("sdf"))
+        return "3d";
+
+    return "text";
+}
+
 async function sendMessage(userInput) {
     try {
         console.log("STEP 1: received message");
+        const intent = detectIntent(userInput);
+        console.log("Intent:", intent);
+        const generator = findGenerator(intent);
 
-        if (userInput.toLowerCase().includes("image")) return "IMAGE_DONE";
+        // GENERATOR PIPELINE
+        if (generator) {
 
+            console.log("Routing to generator:", generator.type);
+
+            if (generator.type === "image")
+                return await runImageModel(generator.model, userInput);
+
+            if (generator.type === "3d")
+                return await run3DModel(generator.model, userInput);
+
+            if (generator.type === "voice")
+                return await runTTS(generator.model, userInput);
+
+            if (generator.type === "video")
+                return await runVideoModel(generator.model, userInput);
+        }
+
+        // TEXT PIPELINE (RAG + LLM)
+        console.log("STEP 2: retrieving context");
+        const retrieved = await retrieveTopK(userInput, 10);
+        console.log("STEP 3: retrieved docs:", retrieved.length);
+        const context = retrieved
+            .map(d => d?.content || d?.Entry || "")
+            .filter(Boolean)
+            .join("\n");
+
+        console.log("STEP 4: building prompt");
+        const fullPrompt = context
+            ? `Context:\n${context}\n\nUser:\n${userInput}\n\nRespond naturally and helpfully.`
+            : `User:\n${userInput}\n\nRespond naturally and helpfully.`;
+
+        console.log("STEP 5: generating response");
+        const response = await generateResponse(fullPrompt);
+        console.log("STEP 6: done");
+        return response;
+    } catch (err) {
+        console.error("Error generating response:", err);
+        return null;
+    }
+}
+
+/*async function sendMessage(userInput) {
+    try {
+        console.log("STEP 1: received message");
+
+        if (userInput.toLowerCase().includes("image")) {
+            return "IMAGE_DONE";
+        }
         console.log("STEP 2: retrieving context");
         const retrieved = await retrieveTopK(userInput, 10);
 
@@ -438,12 +501,16 @@ async function sendMessage(userInput) {
         console.error("Error generating response:", err);
         return null;
     }
-}
+}*/
 
 // Allow dynamic updates from frontend
 function setConfig(newConfig) {
     CONFIG = { ...CONFIG, ...newConfig };
     console.log("CONFIG updated:", CONFIG);
+}
+
+function loadModel(modelName){
+
 }
 
 // ---------------------------
@@ -466,5 +533,6 @@ module.exports = {
     setConfig,
     updateCharacter,
     createGroqClient,
-    setEngine
+    setEngine, 
+    loadModel
 };

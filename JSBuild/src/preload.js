@@ -28,5 +28,6 @@ contextBridge.exposeInMainWorld("api", {
         options: { mode: "chat", includeMetadata: true }
     }),
     ingestDocuments: (paths) => ipcRenderer.invoke("rag:ingest", paths),
-    engineIngestChats: (instanceId, files) => ipcRenderer.invoke("engine:ingest_documents", { instanceId, files })
+    engineIngestChats: (instanceId, files) => ipcRenderer.invoke("engine:ingest_documents", { instanceId, files }),
+    loadModel: (modelName) => ipcRenderer.invoke("engine:loadModel", { modelName })
   });

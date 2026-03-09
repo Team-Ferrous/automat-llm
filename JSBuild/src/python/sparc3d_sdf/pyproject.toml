@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+dependencies = [
+    "einops==0.*,>=0.8",
+    "torch==2.*",
+    "torchvision",
+    "torchaudio",
+    "trimesh==4.*",
+    "kaolin>=0.18.0",
+    "scipy==1.*",
+]
+name = "sparc3d_sdf"
+description = "Fast SDF preprocessing library for meshes"
+authors = [{ name = "Ben Kaye", email = "kaye@robots.com" }]
+requires-python = ">=3.11"
+version = "0.0.5"
+license = "BSD-3-Clause"
+
+
+[tool.ruff]
+target-version = "py311"
