@@ -1,7 +1,8 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const decoder        = require('./decoder');
-const instanceEngine = require('./instance_engine');
+const { InstanceEngine } = require("./instance_engine");
+const engine = new InstanceEngine();
 const { Worker } = require('worker_threads'); // <-- important!
 const { 
     sendMessage, 
@@ -221,9 +222,16 @@ ipcMain.handle("get-local-models", async () => {
     // assume each model has a folder named after it
     return files.filter(f => fs.statSync(path.join(modelsDir, f)).isDirectory());
 });
+
 // -------------CHAT SPECIFIC FEATURES--------------
 ipcMain.handle("chat:send", async (_, userInput) => {
     //console.log("backend:", require("./backend"));
     const result = await sendMessage(userInput);
     return result;
 });
+
+ipcMain.handle("spawn-agent", async (event, config) => {
+    return await engine.spawn(config);
+});
+
+ipcMain.handle("get-agent", (event, id) => engine.get(id));

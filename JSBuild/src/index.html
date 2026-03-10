@@ -503,14 +503,13 @@
         
         <!-- MODULE 1: CHAT INTERFACE (Shortened, with Globe) -->
         <section id="module-chat" class="module-section active flex-col h-full w-full relative overflow-hidden">
-            
             <!-- 3D Globe Background -->
             <div id="bg-chat" class="bg-canvas-container"></div>
+            <canvas id="bg-chatB" class="bg-canvas-container"></canvas>
 
             <!-- Floating Chat Container -->
             <div class="relative z-10 flex-1 flex items-end justify-center p-24">
                 <div class="w-full max-w-6xl glass-panel rounded-2xl overflow-hidden bg-accent/70 flex flex-col" style="max-height: 500px; background-color: var(--bg-primary); color: var(--text-primary); box-shadow: 0 20px 50px var(--bg-primary);">
-                    
                     <!-- Header -->
                     <div class="p-4 border-b border-accent/50 flex justify-between items-center bg-accent/60 flex-shrink-0">
                         <div class="flex items-center gap-3">
@@ -642,7 +641,8 @@
                         <input type="text" id="groq-key-input" placeholder="Enter Groq Key" class="w-48" />
                         </br>
                          <div>
-                            <label class="text-accent font-mono block text-sm mb-2">Groq File</label>
+                            <br>
+                            <label class="text-accent font-mono block text-sm mb-2">Groq Models</label>
                             <select id="model-selector" class="w-full text-accent border border-accent rounded p-2 bg-black-500 text-sm">
                                 <option>openai/gpt-oss-20b</option>
                                 <option>openai/gpt-oss-120b</option>
@@ -709,6 +709,28 @@
                         </p>
                     </div>
                 </div>
+                 <div id="grok-panels">
+                    <div class="glass-panel p-6 rounded-xl" id="grok-key-panel">
+                        <h3 class="text-accent font-mono">Grok (xAI) Key</h3>
+                        <input type="text" id="grok-key-input" placeholder="Enter Groq Key" class="w-48" />
+                        </br>
+                         <div>
+                            <label class="text-accent font-mono block text-sm mb-2">Grok Models</label>
+                            <select id="model-selector" class="w-full text-accent border border-accent rounded p-2 bg-black-500 text-sm">
+                                <option>grok-4-1-fast-reasoning
+                                <option>grok-4-1-fast-non-reasoning</option>
+                                <option>grok-4-fast-reasoning</option>
+                                <option>grok-4-fast-non-reasoning</option>
+                                <option>grok-4-0709</option>
+                                <option>grok-3-mini</option>
+                                <option>grok-3</option>
+                                <option>grok-code-fast-1</option>
+                            </select>
+                            </div>
+                                <button id="grok-key-confirm" class="text-accent border-accent">Confirm</button>
+                            </div>
+                        <!-- other Groq-specific panels -->
+                    </div>
                 <script>
                     // -------------------------------
                     // Local Model Selector Manager
@@ -829,6 +851,8 @@
                     const modeSelector = document.getElementById("modeSelector");
                     const groqPanels = document.getElementById("groq-panels");
                     const localPanels = document.getElementById("local-panels");
+                    const grokPanels = document.getElementById("grok-panels");
+
                     const hf = document.getElementById("source-hf");
                     const ms = document.getElementById("source-ms");
                     hf.addEventListener("change", () => {
@@ -841,13 +865,20 @@
                     modeSelector.addEventListener("change", (e) => {
                         const mode = e.target.value;
                         if (mode === "groq") {
-                            if (groqPanels)  groqPanels.style.display = "block";
+                            if (groqPanels)  groqPanels.style.display  = "block";
                             if (localPanels) localPanels.style.display = "none";
-                        }
+                            if (grokPanels)  grokPanels.style.display  = "none";
 
+                        }
+                        if(mode === "grok"){
+                            if (groqPanels)  groqPanels.style.display  = "none";
+                            if (localPanels) localPanels.style.display = "none";
+                            if (grokPanels)  grokPanels.style.display  = "block";
+                        }
                         if (mode === "local") {
-                            if (groqPanels) groqPanels.style.display = "none";
+                            if (groqPanels)  groqPanels.style.display  = "none";
                             if (localPanels) localPanels.style.display = "block";
+                            if (grokPanels)  grokPanels.style.display  = "none";
                         }
                     });
 
@@ -1194,6 +1225,7 @@
                         <select id="bgSelector" class="w-full text-accent border border-accent rounded p-2 text-accent text-sm mb-4">
                             <option>None</option>
                             <option>Orbital View   (3D)</option>
+                            <option>Matrix Rain (2d)</option>
                             <option>Neural Network (3D)</option>
                             <option>Cold Rain (3d)</option>
                             <option>Solid Black (Perf)</option>
@@ -1290,34 +1322,34 @@
                         <label class="agent-label text-accent font-mono">Model</label>
                         <div class="model-row">
                             <select id="groq-select" class="agent-select agent-model">
-                                <option class="font-mono">openai/gpt-oss-20b</option>
-                                <option class="font-mono">openai/gpt-oss-120b</option>
-                                <option class="font-mono">llama-3.1-8b-instant</option>
-                                <option class="font-mono">llama-3.3-70b-versatile</option>
-                                <option class="font-mono">whisper-large-v3</option>
-                                <option class="font-mono">whisper-large-v3-turbo</option>
-                                <option class="font-mono">groq/compound</option>
-                                <option class="font-mono">groq/compound-mini</option>
+                                <option class="text-accent font-mono">openai/gpt-oss-20b</option>
+                                <option class="text-accent font-mono">openai/gpt-oss-120b</option>
+                                <option class="text-accent font-mono">llama-3.1-8b-instant</option>
+                                <option class="text-accent font-mono">llama-3.3-70b-versatile</option>
+                                <option class="text-accent font-mono">whisper-large-v3</option>
+                                <option class="text-accent font-mono">whisper-large-v3-turbo</option>
+                                <option class="text-accent font-mono">groq/compound</option>
+                                <option class="text-accent font-mono">groq/compound-mini</option>
                             </select>
                             <select id="local-select" class="agent-select agent-model" style="display:none;" disabled>
-                                <option class="font-mono">LLaMA 2</option>
-                                <option class="font-mono">LLaMA 3</option>
-                                <option class="font-mono">grok-2-GGUF</option>
-                                <option class="font-mono">Mistral 7b</option>
-                                <option class="font-mono">Mixtral</option>
-                                <option class="font-mono">GPT-Q/GPT4All</option>
-                                <option class="font-mono">deeperhermes</option>
-                                <option class="font-mono">dolphin3</option>
-                                <option class="font-mono">groq-code-cli</option> 
-                                <option class="font-mono">dolphin-2.5-mixtral-8x7b</option> 
-                                <option class="font-mono">MLewd-v2.4-13B-GGUF</option>
-                                <option class="font-mono">dolphin-2.5-mixtral-8x7b-GGUF</option>
-                                <option class="font-mono">goliath-120b-GGUF</option> 
-                                <option class="font-mono">L3-8B-Stheno-v3.2</option>
-                                <option class="font-mono">L3-8B-Niitama-v1</option> 
-                                <option class="font-mono">NeuralStar_FusionWriter_4x7b-GGUF</option> 
-                                <option class="font-mono">Noro-Hermes-3x7B-GGUF</option> 
-                                <option class="font-mono">HeroBophades-3x7B</option>
+                                <option class="text-accent font-mono">LLaMA 2</option>
+                                <option class="text-accent font-mono">LLaMA 3</option>
+                                <option class="text-accent font-mono">grok-2-GGUF</option>
+                                <option class="text-accent font-mono">Mistral 7b</option>
+                                <option class="text-accent font-mono">Mixtral</option>
+                                <option class="text-accent font-mono">GPT-Q/GPT4All</option>
+                                <option class="text-accent font-mono">deeperhermes</option>
+                                <option class="text-accent font-mono">dolphin3</option>
+                                <option class="text-accent font-mono">groq-code-cli</option> 
+                                <option class="text-accent font-mono">dolphin-2.5-mixtral-8x7b</option> 
+                                <option class="text-accent font-mono">MLewd-v2.4-13B-GGUF</option>
+                                <option class="text-accent font-mono">dolphin-2.5-mixtral-8x7b-GGUF</option>
+                                <option class="text-accent font-mono">goliath-120b-GGUF</option> 
+                                <option class="text-accent font-mono">L3-8B-Stheno-v3.2</option>
+                                <option class="text-accent font-mono">L3-8B-Niitama-v1</option> 
+                                <option class="text-accent font-mono">NeuralStar_FusionWriter_4x7b-GGUF</option> 
+                                <option class="text-accent font-mono">Noro-Hermes-3x7B-GGUF</option> 
+                                <option class="text-accent font-mono">HeroBophades-3x7B</option>
                             </select>
                             <label class="local-toggle text-accent font-mono">
                                 <input type="checkbox" class="local-model-toggle">
@@ -1381,6 +1413,11 @@
             + Add Step
         </button>
     </div>
+    <div class="glass-panel">
+        <button id="start-pipeline-btn" class="workflow-add text-accent font-mono" onclick="" >
+            Execute Worflow
+        </button>
+    </div>
     </section>
 </main>
 
@@ -1419,7 +1456,7 @@
             checkbox.dispatchEvent(new Event('change'));
         }
 
-        // Example: spawning a new agent
+        // Example: spawning a new agent VISUALLY
         function addAgent() {
             const template = document.getElementById('agent-template');
             const clone = template.content.cloneNode(true);
@@ -1432,7 +1469,7 @@
             updateAddStepButton();
         }
 
-        // Enable / disable + Step button based on agent existence
+        // Enable / disable + Step button based on agent existence VISUALLY
         function updateAddStepButton() {
             const agents = document.querySelectorAll('.agent-instance');
             addStepBtn.disabled = agents.length === 0;
@@ -1478,10 +1515,77 @@
                 option.textContent = option.value;
 
                 agentSelect.appendChild(option);
-
             });
-
         }
+
+        // Add this in a <script> block or your JS file
+async function executeWorkflow() {
+    const agentList = document.querySelectorAll('.agent-instance');
+    const agentsMap = {}; // Map agent names -> instance IDs
+
+    // 1️⃣ Create / spawn all agents
+    for (const agentEl of agentList) {
+        const name = agentEl.querySelector('.agent-name').value;
+        const model = agentEl.querySelector('.agent-model').value;
+        const prompt = agentEl.querySelector('.agent-prompt').value;
+
+        if (!name || !model) {
+            console.warn('Skipping agent with missing name or model');
+            continue;
+        }
+
+        // Spawn agent via engine
+        const agentInstance = await window.engine.spawnAgent({
+            name,
+            model,
+            systemPrompt: prompt
+        });
+
+        agentsMap[name] = agentInstance.id; // Keep track of instance IDs
+    }
+
+    // 2️⃣ Read workflow steps
+    const steps = Array.from(document.querySelectorAll('.workflow-step')).map(step => {
+        const agentName = step.querySelector('.workflow-agent').value;
+        const action = step.querySelector('.workflow-action').value;
+        return { agentName, action };
+    });
+
+    // 3️⃣ Execute steps sequentially
+    for (const step of steps) {
+        const agentId = agentsMap[step.agentName];
+        if (!agentId) {
+            console.warn('No agent found for step:', step);
+            continue;
+        }
+
+        console.log(`Executing ${step.action} for agent ${step.agentName}`);
+
+        // Example: different actions
+        switch (step.action) {
+            case 'respond':
+                await window.engine.queryAgent(agentId, "Respond to workflow prompt", 1);
+                break;
+            case 'research':
+                // Could call a RAG or Web search function
+                await window.engine.engineIngestChats(agentId, ["Research files or data"]);
+                break;
+            case 'code':
+                // Possibly generate code
+                await window.engine.queryAgent(agentId, "Generate code snippet", 1);
+                break;
+            case 'tool':
+                console.log('Tool action not implemented yet');
+                break;
+        }
+    }
+
+    console.log('Workflow complete!');
+}
+
+// Attach to button
+document.getElementById('start-pipeline-btn').onclick = executeWorkflow;
+
 
         function reindexWorkflow(){
 
@@ -1510,8 +1614,8 @@
             resizeCanvases();
         }
         document.addEventListener("DOMContentLoaded", () => {
-            const botModule = document.getElementById("module-management");
-            if (botModule) {
+            const neuralModule = document.getElementById("bg-chat");
+             if (neuralModule) {
                 // Make sure the section is visible before initializing
                 setTimeout(() => {
                     if (!window.currentBG) {
@@ -1596,36 +1700,55 @@
                 saveAppearance();
             }
         }
+function updateWorkflowDropdowns() {
+    const selects = document.querySelectorAll(".workflow-agent");
+    selects.forEach(sel => {
+        const option = document.createElement("option");
+        option.value = agentId;
+        option.textContent = agentConfig.id; // or a friendly name
+        sel.appendChild(option);
+    });
+}
 
 function createAgent() {
-
     const template = document.getElementById("agent-template");
     const agentList = document.getElementById("agent-list");
-
     const clone = template.content.cloneNode(true);
-
     const agentId = "agent_" + (++agentCounter);
-
     const agentRoot = clone.querySelector(".agent-instance");
     agentRoot.dataset.agentId = agentId;
-
     const modelSelect = clone.querySelector(".agent-model");
     const localToggle = clone.querySelector(".local-model-toggle");
-
     localToggle.addEventListener("change", () => {
-
         modelSelect.disabled = localToggle.checked;
-
         if(localToggle.checked){
             modelSelect.style.opacity = "0.5";
         } else {
             modelSelect.style.opacity = "1";
         }
-
     });
 
     agentList.appendChild(clone);
     setAgentExists(true); // enable + Step once agent exists
+
+    const agentConfig = {
+        id: agentId,
+        provider: localToggle.checked ? "local" : modelSelect.value,
+        tools: [], // later: read from Tools checkboxes
+        mode: "active",
+        embeddingDim: 1536, // default or configurable
+        secretKey: null // optional for provider API key
+    };
+
+    // Spawn the instance in your InstanceEngine
+    engine.spawn(agentConfig)
+        .then(result => {
+            if (!result.success) {
+                alert("Agent creation failed: " + result.error);
+            } else {
+                console.log("Agent instance created:", result.instance);
+            }
+        });
 }
 
     const addStepBtn = document.querySelector('.workflow-add');
@@ -1707,8 +1830,9 @@ function createAgent() {
             document.querySelectorAll('.module-section').forEach(s => s.classList.remove('active'));
             const section = document.getElementById(id);
             section.classList.add('active');
-
-            if (id === 'module-management') {
+            if (id === 'bg-chat') {
+                if (!currentBG) currentBG = initMatrixRain();
+            }else if (id === 'module-management') {
                 if (!currentBG) currentBG = initMatrixRain();
                 currentBG.start(); // start rain **after module becomes visible**
             } else if (currentBG) {
@@ -1718,77 +1842,90 @@ function createAgent() {
         }
 
         // --- 2. Chat Background: Holographic Globe ---
-        function initMatrixRain() {
-            const canvas = document.getElementById('bg-bot');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
+       function initMatrixRain() {
 
-            const fontSize = 16;
-            const letters = 'アカサタナハマヤラワABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let columns, drops;
+    const canvas = document.getElementById('bg-chatB');
+    const div3D = document.getElementById('bg-chat');
+
+    if (!canvas) return;
+
+    div3D.classList.remove('active');
+    canvas.classList.add('active');
+
+    const ctx = canvas.getContext('2d');
+
+    const fontSize = 16;
+    const letters = 'アカサタナハマヤラワABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+    let columns;
+    let drops;
+    let running = true;
 
     function resize() {
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = canvas.parentElement.clientHeight;
+
         columns = Math.floor(canvas.width / fontSize);
         drops = Array(columns).fill(0);
     }
+
     resize();
     window.addEventListener('resize', resize);
 
-        function draw() {
-                const light = document.body.classList.contains('light-theme');
-                const accent = getComputedStyle(document.documentElement)
-                            .getPropertyValue('--accent')
-                            .trim();
-                ctx.fillStyle = light ? 'rgba(240,240,240,0.1)' : 'rgba(0,0,0,0.05)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+    function draw() {
 
-                ctx.fillStyle = accent;
-                ctx.font = fontSize + 'px monospace';
+        if (!running) return;
 
-                for (let i = 0; i < drops.length; i++) {
-                    const text = letters[Math.floor(Math.random() * letters.length)];
-                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+        const light = document.body.classList.contains('light-theme');
 
-                    drops[i]++;
-                    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                        drops[i] = 0;
-                    }
-                }
-                requestAnimationFrame(draw);
-            }
-            draw();
-        }
+        const accent = getComputedStyle(document.documentElement)
+            .getPropertyValue('--accent')
+            .trim();
 
-        // Example usage:
-        let currentBG = initMatrixRain();
-        let currentBackground = null;
-        function setBackground(type) {
+        ctx.fillStyle = light
+            ? 'rgba(240,240,240,0.1)'
+            : 'rgba(0,0,0,0.05)';
 
-            if (currentBackground && currentBackground.cleanup) {
-                currentBackground.cleanup();
-                currentBackground = null;
-            }
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            if (type === "2d") {
-                currentBackground = initCanvasRain();
-            }
+        ctx.fillStyle = accent;
+        ctx.font = fontSize + 'px monospace';
 
-            if (type === "3d") {
-                currentBackground = initRainBackground();
+        for (let i = 0; i < drops.length; i++) {
+
+            const text = letters[Math.floor(Math.random() * letters.length)];
+
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+            drops[i]++;
+
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
             }
         }
+
+        requestAnimationFrame(draw);
+    }
+
+    draw();
+
+    return {
+        cleanup() {
+            running = false;
+            window.removeEventListener('resize', resize);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.classList.remove('active');
+        }
+    };
+}
 
         function initImageBackground(imageSrc) {
-        const container = document.getElementById('bg-chat');
-
-        const scene = new THREE.Scene();
-
-        const camera = new THREE.OrthographicCamera(
-            -1, 1, 1, -1, 0.1, 10
-        );
-        camera.position.z = 1;
+            const container = document.getElementById('bg-chat');
+            const scene     = new THREE.Scene();
+            const camera    = new THREE.OrthographicCamera(
+                -1, 1, 1, -1, 0.1, 10
+            );
+            camera.position.z = 1;
 
         const renderer = new THREE.WebGLRenderer({ alpha: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
@@ -1802,7 +1939,6 @@ function createAgent() {
         });
 
         texture.minFilter = THREE.LinearFilter;
-
         const geometry = new THREE.PlaneGeometry(2, 2);
         const material = new THREE.MeshBasicMaterial({
             map: texture
@@ -2028,7 +2164,14 @@ function createAgent() {
     }   
 
     function initMatrixBotBackground() {
-    const canvas = document.getElementById('bg-bot');
+        const canvas = document.getElementById('bg-chat');
+        const div3D = document.getElementById('bg-chatB');
+
+    if (!canvas) return;
+
+    div3D.classList.remove('active');
+    canvas.classList.add('active');
+
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
@@ -2092,6 +2235,13 @@ function createCharSprite(char, color) {
 
 function initRainBackground() {
     const container = document.getElementById('bg-chat'); // reuse bg-chat for consistency
+    const div3D     = document.getElementById('bg-chatB');
+
+    if (!canvas) return;
+
+    container.classList.add('active');
+    div3D.classList.remove('active');
+
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x000000, 0.02);
 

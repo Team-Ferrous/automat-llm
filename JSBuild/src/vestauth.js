@@ -27,4 +27,7 @@ class VestAuthClient {
   }
 }
 
-module.exports = new VestAuthClient();
+
+module.exports = {
+  VestAuthClient
+}

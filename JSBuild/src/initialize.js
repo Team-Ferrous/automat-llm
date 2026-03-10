@@ -62,3 +62,7 @@ async function initialize() {
 
     return embeddingIndex;
 }
+
+module.exports = {
+    initialize
+}

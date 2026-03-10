@@ -17,17 +17,22 @@ contextBridge.exposeInMainWorld("api", {
     spawnInstance: (config) => ipcRenderer.invoke("engine:spawn_instance", config),
     openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
     saveFileDialog: () => ipcRenderer.invoke('save-file-dialog'),
-    DecodeRawDirectory: (path) =>
+    DecodeRawDirectory: (dir) =>
       ipcRenderer.invoke('decode-directory', {
-        path,
+        dir,
         options: { mode: "raw" }
     }),
-    DecodeChatDirectory: (path) =>
+    DecodeChatDirectory: (dir) =>
       ipcRenderer.invoke('decode-directory', {
-        path,
+        dir,
         options: { mode: "chat", includeMetadata: true }
     }),
     ingestDocuments: (paths) => ipcRenderer.invoke("rag:ingest", paths),
     engineIngestChats: (instanceId, files) => ipcRenderer.invoke("engine:ingest_documents", { instanceId, files }),
-    loadModel: (modelName) => ipcRenderer.invoke("engine:loadModel", { modelName })
+    loadModel: (modelName) => ipcRenderer.invoke("engine:loadModel", { modelName }),
+    spawnAgent: (config) => engine.spawn(config),
+    getAgent: (id) => engine.get(id),
+    attachAgent: (id, agent) => engine.attachAgent(id, agent),
+    queryAgent: (id, vector, k) => engine.query(id, vector, k),
+    ingestDocuments: (id, docs) => engine.ingestDocuments(id, docs),
   });

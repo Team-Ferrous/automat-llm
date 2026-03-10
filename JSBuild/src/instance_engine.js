@@ -1,5 +1,6 @@
 const { embedText, faiss } = require("./embeddings"); // your embedding function
-const vestauth = require("./vestauth");
+const vestauth             = require("./vestauth");
+const h             = require("./vestauth");
 
 /*
 npm i -g vestauth
