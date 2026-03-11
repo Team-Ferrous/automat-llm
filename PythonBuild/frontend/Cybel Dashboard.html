@@ -394,7 +394,8 @@
             <button onclick="switchTab('creative')"   id="nav-creative"   class="w-full nav-btn text-left px-6 py-3 flex items-center gap-3 transition-all inactive-nav"><i data-lucide="sparkles" class="w-5 h-5 flex-shrink-0"></i><span class="font-semibold nav-text whitespace-nowrap">Creative Mode</span></button>
             <button onclick="switchTab('engine')"     id="nav-engine"     class="w-full nav-btn text-left px-6 py-3 flex items-center gap-3 transition-all inactive-nav"><i data-lucide="cpu" class="w-5 h-5 flex-shrink-0"></i><span class="font-semibold nav-text whitespace-nowrap">Engine Config</span></button>
             <button onclick="switchTab('appearance')" id="nav-appearance" class="w-full nav-btn text-left px-6 py-3 flex items-center gap-3 transition-all inactive-nav"><i data-lucide="palette" class="w-5 h-5 flex-shrink-0"></i><span class="font-semibold nav-text whitespace-nowrap">Appearance</span></button>
-            <button onclick="switchTab('management')" id="nav-management" class="w-full nav-btn text-left px-6 py-3 flex items-center gap-3 transition-all inactive-nav"><i data-lucide="layers" class="w-5 h-5 flex-shrink-0"></i><span class="font-semibold nav-text whitespace-nowrap">Agent Manager</span></button>
+            <button onclick="switchTab('management')" id="nav-management" class="w-full nav-btn text-left px-6 py-3 flex items-center gap-3 transition-all inactive-nav"><i data-lucide="layers" class="w-5 h-5 flex-shrink-0"></i><span class="font-semibold nav-text whitespace-nowrap">Bot Management</span></button>
+            <!-- <button onclick="switchTab('agents')"     id="nav-agents"     class="w-full nav-btn text-left px-6 py-3 flex items-center gap-3 transition-all inactive-nav"><i data-lucide="cpu" class="w-5 h-5 flex-shrink-0"></i><span class="font-semibold nav-text whitespace-nowrap">Agent Management</span></button> -->
         </div>
         <div class="p-4 border-t border-accent-dark/50 text-xs text-accent-dark font-mono text-center flex justify-center items-center h-16">
             <span class="nav-footer-text whitespace-nowrap">ID: A-387-CYB <br> STATUS: ONLINE</span>
@@ -1239,7 +1240,7 @@
         function initSharpBackground() {
             const iframe = document.createElement('iframe');
             let currentAccent = getComputedStyle(document.documentElement).getPropertyValue('--primary-accent').trim().replace('#','');
-            iframe.src = `assets/Animated_sharp.html?color=${currentAccent}`;
+            iframe.src = `assets/animated_sharp_bg.html?color=${currentAccent}`;
             Object.assign(iframe.style, { width:'100%',height:'100%',border:'none',position:'absolute',top:'0',left:'0',zIndex:'0',pointerEvents:'none' });
             bgChatContainer.appendChild(iframe);
             iframe.addEventListener('load', () => { iframe.contentWindow.postMessage({ theme: document.body.classList.contains('light-theme') ? 'light' : 'dark' }, '*'); });
