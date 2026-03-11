@@ -1,6 +1,6 @@
-const { embedText, faiss } = require("./embeddings"); // your embedding function
-const vestauth             = require("./vestauth");
-const h             = require("./vestauth");
+import { embedText }  from "./embeddings.js"; // your embedding function
+import { VestAuthClient } from "./vestauth.js";
+const { IndexFlatL2, Index, IndexFlatIP } = './node_modules/faiss-node/build/Release/faiss-node';
 
 /*
 npm i -g vestauth
@@ -31,13 +31,13 @@ async spawn(config) {
   }
 
   const dimension = config.embeddingDim || 1536;
-  const index = new faiss.IndexFlatL2(dimension);
+  const index = new IndexFlatL2(dimension);
 
   // Fetch provider secret if needed
   let providerToken = null;
 
   if (config.secretKey) {
-    providerToken = await vestauth.get(config.secretKey);
+    providerToken = await VestAuthClient.get(config.secretKey);
   }
 
   const instance = {
@@ -143,6 +143,6 @@ engine.spawn({
   tools: ["search", "filesystem"]
 });*/
 
-module.exports = {
+export {
  InstanceEngine
 }

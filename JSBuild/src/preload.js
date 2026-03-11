@@ -35,4 +35,6 @@ contextBridge.exposeInMainWorld("api", {
     attachAgent: (id, agent) => engine.attachAgent(id, agent),
     queryAgent: (id, vector, k) => engine.query(id, vector, k),
     ingestDocuments: (id, docs) => engine.ingestDocuments(id, docs),
+    hfLogin: () => ipcRenderer.invoke('hf-login'),
+    msLogin: () => ipcRenderer.invoke('ms-login')
   });

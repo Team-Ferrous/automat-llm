@@ -1,10 +1,9 @@
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
-const fs = require("fs");
-const decoder        = require('./decoder');
-const { InstanceEngine } = require("./instance_engine");
-const engine = new InstanceEngine();
-const { Worker } = require('worker_threads'); // <-- important!
-const { 
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import fs from "fs";
+import { Decoder }        from './decoder.js';
+import { InstanceEngine } from "./instance_engine.js";
+import { Worker }         from 'worker_threads'; // <-- important!
+import { 
     sendMessage, 
     setGroqKey, 
     setGenerationMode, 
@@ -19,10 +18,15 @@ const {
     exportDocument,
     setEngine,
     loadModel
-} = require('./backend');
+} from './backend.js';
 
-const { spawn } = require("child_process");
-const path = require("path");
+import { spawn } from "child_process";
+import path      from "path";
+import { dirname }       from 'node:path';
+import { fileURLToPath } from 'node:url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
+const engine     = new InstanceEngine();
 
 let pythonServer;
 
@@ -165,7 +169,7 @@ ipcMain.handle("engine:updateCharacter", async (_, mode) => {
 });
 
 ipcMain.handle('decode-directory', async (event, args) => {
-  return await decoder.decodeDirectory(args.path, args.options);
+  return await Decoder.decodeDirectory(args.path, args.options);
 });
 
 ipcMain.handle("rag:ingest", async (event, paths) => {
@@ -201,7 +205,7 @@ ipcMain.handle("engine:ingest_documents", async (event, { instanceId, files }) =
       const raw = fs.readFileSync(file, "utf8");
 
       // Decode chat or raw text
-      const chunks = decoder.decodeChat(raw); // returns array of strings
+      const chunks = Decoder.decodeChat(raw); // returns array of strings
       allChunks.push(...chunks);
     }
 

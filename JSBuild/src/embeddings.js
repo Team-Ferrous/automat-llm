@@ -1,5 +1,13 @@
 // embeddings.js
-const path = require('path');
+import path              from 'path';
+import { dirname }       from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+// get __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
+const require    = createRequire(import.meta.url);
 const { IndexFlatL2, Index, IndexFlatIP } = require(path.resolve(__dirname, './node_modules/faiss-node/build/Release/faiss-node'));
 
 
@@ -81,7 +89,7 @@ function embedText(doc, size = embeddingDim) {
   return vec;
 }
 
-module.exports = {
+export {
   initFAISS,
   addToFAISS,
   searchFAISS,
@@ -90,7 +98,6 @@ module.exports = {
   IndexFlatL2,
   Index, 
   IndexFlatIP,
-  embeddingDim,
   embeddingIndex,
   embeddings 
 };

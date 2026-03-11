@@ -3,11 +3,11 @@ export class ModelHub {
     constructor() {
         this.hfToken = null;          // HuggingFace token
         this.msToken = null;          // ModelScope token
+        this.ollamaHost = "http://localhost:11434"; // Ollama endpoint
     }
 
     /* ---------------- HuggingFace ---------------- */
     async loginHuggingFace() {
-        // Prompt for token manually (or use popup flow if available)
         const token = prompt("Enter your HuggingFace API token:");
         if (!token) return false;
         this.hfToken = token;
@@ -22,7 +22,7 @@ export class ModelHub {
             headers: { Authorization: `Bearer ${this.hfToken}` },
         });
         if (!res.ok) throw new Error("Failed to fetch HF models");
-        return res.json(); // Array of models
+        return res.json();
     }
 
     async queryHuggingFaceModel(modelId, inputs) {
@@ -41,7 +41,6 @@ export class ModelHub {
 
     /* ---------------- ModelScope ---------------- */
     async loginModelScope() {
-        // ModelScope also uses a token
         const token = prompt("Enter your ModelScope API token:");
         if (!token) return false;
         this.msToken = token;
@@ -56,7 +55,7 @@ export class ModelHub {
             headers: { Authorization: `Bearer ${this.msToken}` },
         });
         if (!res.ok) throw new Error("Failed to fetch ModelScope models");
-        return res.json(); // Array of models
+        return res.json();
     }
 
     async queryModelScopeModel(modelId, inputs) {
@@ -70,6 +69,37 @@ export class ModelHub {
             body: JSON.stringify({ input: inputs }),
         });
         if (!res.ok) throw new Error("ModelScope inference failed");
+        return res.json();
+    }
+
+    /* ---------------- Ollama ---------------- */
+
+    setOllamaHost(host) {
+        this.ollamaHost = host;
+        localStorage.setItem("ollamaHost", host);
+    }
+
+    async listOllamaModels() {
+        const res = await fetch(`${this.ollamaHost}/api/tags`);
+        if (!res.ok) throw new Error("Failed to fetch Ollama models");
+        const data = await res.json();
+        return data.models || [];
+    }
+
+    async queryOllamaModel(modelId, prompt) {
+        const res = await fetch(`${this.ollamaHost}/api/generate`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model: modelId,
+                prompt: prompt,
+                stream: false
+            }),
+        });
+
+        if (!res.ok) throw new Error("Ollama inference failed");
         return res.json();
     }
 }

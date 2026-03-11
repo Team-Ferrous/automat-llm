@@ -1,28 +1,34 @@
 // backend.js
-const fs  = require("fs");
-const path   = require("path");
-const crypto = require("crypto");
-const { app } = require('electron');
-const {findGenerator} = require('./model_switcher')
+import fs                from "fs";
+import path              from "path";
+import crypto            from "crypto";
+import app               from "electron";
+import dotenv            from "dotenv";
 
-const OpenAI = require("openai");
-const { pipeline } = require("@xenova/transformers");
-const { embeddingDim,
-  embeddingIndex,
-  Index, 
-  IndexFlatL2, 
-  IndexFlatIP 
-} = require("./embeddings");
-require("dotenv").config({ path: path.join(__dirname, ".env") });
+import OpenAI            from "openai";
+import { pipeline      } from "@xenova/transformers";
+import { findGenerator } from './model_switcher.js'
+import { embeddingDim, embeddingIndex } from "./embeddings.js";
+
+import { dirname }       from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
+const require    = createRequire(import.meta.url);
+const { IndexFlatL2, Index }  = require(path.resolve(__dirname, './node_modules/faiss-node/build/Release/faiss-node'));
+
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 // main.js
-const Store = require('electron-store').default;
+import Store from 'electron-store';
 const store = new Store();
 
 let CONFIG = {
     temperature:      0.75,
     contextWindow:    4096,
-    generationMode:   "groq", //  "groq" | "local"
+    generationMode:   "groq", //  "groq" | "local" | "grok" | "verso"
     model:            "openai/gpt-oss-20b",
     citation_options: 'enabled',
     groqKey:          store.get("groqKey") || null //localStorage.getItem("groqKey") //process.env.GROQ_API_KEY,
@@ -32,8 +38,9 @@ function createGroqClient() {
     return new Groq({ apiKey: CONFIG.groqKey });
 }
 
-//const DOCUMENT_DIR = path.join(__dirname, "documents");
-const DOCUMENT_DIR = path.join(app.getPath('userData'), 'documents');
+//const DOCUMENT_DIR = path.join(app.getPath('userData'), 'documents');
+const DOCUMENT_DIR = path.join(__dirname, "documents");
+
 let embedder;
 let generator;
 
@@ -238,8 +245,23 @@ async function loadModels() {
         embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
         console.log("Embedding model loaded!");
 
+        if (CONFIG.generationMode === "groq") {
+            console.log("Loading Groq (requested) model...");
+            generator = await pipeline("text-generation", "Xenova/phi-2");
+            console.log("Generator model loaded!");
+        }
+        if (CONFIG.generationMode === "grok") {
+            console.log("Loading Grok model...");
+            generator = await pipeline("text-generation", "Xenova/phi-2");
+            console.log("Generator model loaded!");
+        }
         if (CONFIG.generationMode === "local") {
             console.log("Loading local text-generation model...");
+            generator = await pipeline("text-generation", "Xenova/phi-2");
+            console.log("Generator model loaded!");
+        }
+        if (CONFIG.generationMode === "verso") {
+            console.log("Loading Verso model...");
             generator = await pipeline("text-generation", "Xenova/phi-2");
             console.log("Generator model loaded!");
         }
@@ -364,7 +386,19 @@ async function generateLocal(prompt) {
         console.warn("generateLocal returned invalid output", result);
         return "Error: LLM did not return text";
     }
+    return result[0].generated_text;
+}
 
+async function generateVerso(prompt) {
+    if(generator == null){
+        loadModels();
+    }
+    const result = await generator(prompt, { max_new_tokens: 200, temperature: 0.7 });
+
+    if (!Array.isArray(result) || !result[0]?.generated_text) {
+        console.warn("generateLocal returned invalid output", result);
+        return "Error: LLM did not return text";
+    }
     return result[0].generated_text;
 }
 
@@ -391,11 +425,32 @@ async function generateGroq(prompt) {
     }
 }
 
+async function generateGrok(model, query) {
+    try {
+        let client = createXai({ apiKey: process.env.XAI_API_KEY });
+        const { text } = await generateText({
+            model:  client.responses(model),
+            system: 'You are Grok, a highly intelligent, helpful AI assistant.',
+            prompt: query,
+        });
+
+        console.log(text)
+        return text;
+    } catch (err) {
+        console.error("Groq generation failed:", err);
+        return null;// "Error: could not generate response";
+    }
+}
+
 async function generateResponse(prompt) {
     switch (CONFIG.generationMode) {
         case "groq":
             return await generateGroq(prompt);
+        case "grok":
+            return await generateLocal(prompt);
         case "local":
+            return await generateLocal(prompt);
+        case "verso":
             return await generateLocal(prompt);
         default:
             return await generateGroq(prompt);
@@ -517,7 +572,7 @@ function loadModel(modelName){
 // ---------------------------
 // Exports
 // ---------------------------
-module.exports = {
+export  {
     setGroqKey,
     setTemperature,
     setContextWindowKey,

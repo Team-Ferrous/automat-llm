@@ -1,5 +1,4 @@
-const { HindsightClient } = require('@vectorize-io/hindsight-client');
-
+import { HindsightClient } from '@vectorize-io/hindsight-client';
 const client = new HindsightClient({ baseUrl: 'http://localhost:8888' });
 
 // Retain a memory
@@ -23,7 +22,7 @@ async function reflect(id, abstract) {
     return answer;
 }
 
-module.exports = {
+export  {
     reflect,
     RecallMemory,
     RetainMemory

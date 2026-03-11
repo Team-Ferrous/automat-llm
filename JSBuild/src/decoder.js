@@ -2,10 +2,10 @@
 // Unified chat/text → JSON decoder module
 // Electron-safe, no CLI, no side effects
 
-const fs   = require("fs");
-const path = require("path");
+import fs   from "fs";
+import path from "path";
 
-class Decoder {
+export class Decoder {
   constructor() {
     this.commonPatterns = [
       /^{{(\w+)}}:/i,
@@ -188,5 +188,3 @@ class Decoder {
       .trim();
   }
 }
-
-module.exports = new Decoder();

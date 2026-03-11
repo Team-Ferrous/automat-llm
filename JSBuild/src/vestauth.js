@@ -1,8 +1,7 @@
 // vestauth.js
+import fetch from "node-fetch";
 
-const fetch = require("node-fetch");
-
-class VestAuthClient {
+export class VestAuthClient {
   constructor(endpoint = "https://as2.dotenvx.com") {
     this.endpoint = endpoint;
   }
@@ -25,9 +24,4 @@ class VestAuthClient {
     if (!res.ok) throw new Error("VestAuth set failed");
     return res.json();
   }
-}
-
-
-module.exports = {
-  VestAuthClient
 }

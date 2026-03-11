@@ -1,4 +1,4 @@
-import { createXai } from '@ai-sdk/xai';
+import { createXai    } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 //Certain models also support Structured Outputs, 
@@ -42,7 +42,7 @@ async function get_grok_image_response(model, message, image_link){
         return text;
     }
 
-module.exports = {
+export {
     get_grok_response,
     get_grok_response_with_system_prompt,
     get_grok_image_response

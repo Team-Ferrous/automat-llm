@@ -27,7 +27,7 @@ function findGeneratorByType(type, stack) {
     return null;
 }
 
-module.exports = {
+export {
     registerGenerator,
     getGenerator,
     findGeneratorByType
