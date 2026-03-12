@@ -49,10 +49,8 @@ class InstanceEngine {
     };
 
     this.instances.set(config.id, instance);
-
     return { success: true, instance };
   }
-
 
   get(id) {
     return this.instances.get(id);
@@ -80,9 +78,21 @@ class InstanceEngine {
       const vector = await embedText(doc); // returns Float32Array
       inst.faissIndex.add([vector]);
     }
-
     return { success: true, count: documents.length };
   }
+
+  async spawnAgent(config) {
+    const agent = {
+        id: config.id,
+        model: config.model || "mistral7b",
+        systemPrompt: config.systemPrompt || ""
+    };
+
+    // Persist settings
+    await vest.set(`${agent.id}:model`, agent.model);
+    await vest.set(`${agent.id}:systemPrompt`, agent.systemPrompt);
+    return agent;
+}
 
   /**
    * Attach an agent to an instance

@@ -230,3 +230,31 @@ ipcMain.handle("spawn-agent", async (event, config) => {
 });
 
 ipcMain.handle("get-agent", (event, id) => engine.get(id));
+
+
+ipcMain.handle("ingest-google-sheet", async (_, spreadsheetId) => {
+    try {
+        return await ingestSpreadsheetToFAISS(spreadsheetId);
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle("gdrive-dialog-ingest", async () => {
+    try {
+        const selectedFiles = await openGDriveDialog(); // [{id, name}, ...]
+        const results = [];
+
+        for (const file of selectedFiles) {
+            const rows = await fetchSpreadsheet(file.id);
+            if (rows.length) {
+                await ingestSheets(null, rows);
+                results.push({ name: file.name, rowsIngested: rows.length });
+            }
+        }
+
+        return { success: true, details: results };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});

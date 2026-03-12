@@ -14,16 +14,11 @@ function getGenerator(modelName) {
 }
 
 function findGeneratorByType(type, stack) {
-
     for (const model of stack.generators) {
-
         const gen = generators.get(model);
-
         if (gen && gen.type === type)
             return gen;
-
     }
-
     return null;
 }
 

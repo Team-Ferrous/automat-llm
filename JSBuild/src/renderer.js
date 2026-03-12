@@ -1544,7 +1544,7 @@ window.addEventListener('DOMContentLoaded', () => {
             });
 
 
-                //globeMaterial.color.set(color);
+            //globeMaterial.color.set(color);
             const bgSelect = document.getElementById('bgSelector');
             function switchBG(type) {
                 // Clean previous
@@ -1706,70 +1706,6 @@ window.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     });
           
-// Add this in a <script> block or your JS file
-/*async function executeWorkflow() {
-    const agentList = document.querySelectorAll('.agent-instance');
-    const agentsMap = {}; // Map agent names -> instance IDs
-
-    // 1️⃣ Create / spawn all agents
-    for (const agentEl of agentList) {
-    const name   = agentEl.querySelector('.agent-name').value;
-    const model  = agentEl.querySelector('.agent-model').value;
-    const prompt = agentEl.querySelector('.agent-prompt').value;
-
-    if (!name || !model) {
-        console.warn('Skipping agent with missing name or model');
-        continue;
-    }
-
-    // Spawn agent via engine
-    const agentInstance = await window.engine.spawnAgent({
-        name,
-        model,
-        systemPrompt: prompt
-    });
-
-    agentsMap[name] = agentInstance.id; // Keep track of instance IDs
-        }
-
-    // 2️⃣ Read workflow steps
-    const steps = Array.from(document.querySelectorAll('.workflow-step')).map(step => {
-    const agentName = step.querySelector('.workflow-agent').value;
-    const action = step.querySelector('.workflow-action').value;
-    return { agentName, action };
-    });
-
-    // 3️⃣ Execute steps sequentially
-    for (const step of steps) {
-    const agentId = agentsMap[step.agentName];
-    if (!agentId) {
-        console.warn('No agent found for step:', step);
-        continue;
-    }
-
-    console.log(`Executing ${step.action} for agent ${step.agentName}`);
-
-    // Example: different actions
-    switch (step.action) {
-        case 'respond':
-            await window.engine.queryAgent(agentId, "Respond to workflow prompt", 1);
-            break;
-        case 'research':
-            // Could call a RAG or Web search function
-            await window.engine.engineIngestChats(agentId, ["Research files or data"]);
-            break;
-        case 'code':
-            // Possibly generate code
-            await window.engine.queryAgent(agentId, "Generate code snippet", 1);
-            break;
-        case 'tool':
-            console.log('Tool action not implemented yet');
-            break;
-        }
-    }
-    console.log('Workflow complete!');
-}*/
-
 function reindexWorkflow(){
 
     const steps = document.querySelectorAll(".workflow-step");

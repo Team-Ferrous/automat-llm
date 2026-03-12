@@ -1,27 +1,152 @@
 // backend.js
-import fs                from "fs";
-import path              from "path";
-import crypto            from "crypto";
-import { dialog }        from 'electron';
-import dotenv            from "dotenv";
+import fs         from "fs";
+import path       from "path";
+import crypto     from "crypto";
+import electron   from "electron";
+import Store from 'electron-store';
+
+import { google } from "googleapis";
+import open       from "open";
+import readline   from 'readline';
+const { dialog, ipcMain } = electron;
 
 import OpenAI            from "openai";
-import Xai               from "xAi"
+import { createXai    }  from '@ai-sdk/xai';
+import { generateText }  from 'ai';
+import { error        }  from "node:console";
+
 import { pipeline      } from "@xenova/transformers";
 import { findGenerator } from './model_switcher.js'
 import { embeddingDim, embeddingIndex, embedText } from "./embeddings.js";
 
-import { dirname }       from 'node:path';
+import { dirname       } from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import Store from 'electron-store';
-import { error } from "node:console";
+import { reflect, RecallMemory, RetainMemory } from "./hindsight.js";
+import dotenv from "dotenv";
+
+const TOKEN_PATH = path.join(__dirname, 'token.json');
+const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
+
+export async function authorizeSheets() {
+    // Load client secrets from a local file.
+    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf-8'));
+    const { client_secret, client_id, redirect_uris } = credentials.installed;
+
+    const oAuth2Client = new google.auth.OAuth2(
+        client_id,
+        client_secret,
+        redirect_uris[0] // usually "urn:ietf:wg:oauth:2.0:oob" or http://localhost
+    );
+
+    // Check if we have previously stored a token.
+    if (fs.existsSync(TOKEN_PATH)) {
+        const token = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
+        oAuth2Client.setCredentials(token);
+        return oAuth2Client;
+    }
+
+    // Generate a new token
+    const authUrl = oAuth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: [
+            'https://www.googleapis.com/auth/spreadsheets.readonly',
+            'https://www.googleapis.com/auth/drive.readonly'
+        ],
+    });
+
+    // Open browser for user to authorize
+    await open(authUrl);
+
+    // Ask user to paste the code
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+
+    const code = await new Promise(resolve => {
+        rl.question('Enter the code from Google here: ', answer => {
+            rl.close();
+            resolve(answer);
+        });
+    });
+
+    const tokenResponse = await oAuth2Client.getToken(code);
+    oAuth2Client.setCredentials(tokenResponse.tokens);
+
+    // Save token for future use
+    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokenResponse.tokens, null, 2));
+    console.log('✅ Token stored to', TOKEN_PATH);
+
+    return oAuth2Client;
+}
+
+const SHEETS_TOKEN_PATH = path.join(__dirname, "sheets_token.json");
+const SHEETS_CREDENTIALS_PATH = path.join(__dirname, "sheets_credentials.json"); // from GCP
+let sheetsAuth;
+
+async function authorizeSheets() {
+    if (sheetsAuth) return sheetsAuth;
+
+    const credentials = JSON.parse(fs.readFileSync(SHEETS_CREDENTIALS_PATH, "utf-8"));
+    const { client_secret, client_id, redirect_uris } = credentials.installed;
+    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
+
+    if (fs.existsSync(SHEETS_TOKEN_PATH)) {
+        const token = JSON.parse(fs.readFileSync(SHEETS_TOKEN_PATH, "utf-8"));
+        oAuth2Client.setCredentials(token);
+    } else {
+        const authUrl = oAuth2Client.generateAuthUrl({
+            access_type: "offline",
+            scope: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+        });
+        console.log("Authorize Google Sheets by visiting:", authUrl);
+        await open(authUrl);
+
+        // Here you’d need a simple input dialog in Electron to get the code
+        const code = await new Promise(resolve => {
+            ipcMain.once("google-sheets-code", (_, code) => resolve(code));
+        });
+
+        const { tokens } = await oAuth2Client.getToken(code);
+        oAuth2Client.setCredentials(tokens);
+        fs.writeFileSync(SHEETS_TOKEN_PATH, JSON.stringify(tokens), "utf-8");
+    }
+
+    sheetsAuth = oAuth2Client;
+    return oAuth2Client;
+}
+
+async function fetchSpreadsheet(spreadsheetId, range = "Sheet1!A:F") {
+    const auth = await authorizeSheets();
+    const sheets = google.sheets({ version: "v4", auth });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
+    const rows = res.data.values || [];
+
+    if (!rows.length) return [];
+
+    const header = rows.shift();
+    const formattedRows = rows.map(row => {
+        const obj = {};
+        header.forEach((key, i) => { obj[key] = row[i] ?? ""; });
+        return obj;
+    });
+
+    return formattedRows;
+}
+
+async function ingestSpreadsheetToFAISS(spreadsheetId, range = "Sheet1!A:F") {
+    const rows = await fetchSpreadsheet(spreadsheetId, range);
+    if (!rows.length) return { success: false, message: "No data found in sheet." };
+
+    await ingestSheets(null, rows);
+    return { success: true, rowsIngested: rows.length };
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 const require    = createRequire(import.meta.url);
 const { IndexFlatL2 }  = require(path.resolve(__dirname, './node_modules/faiss-node/build/Release/faiss-node'));
-
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 // main.js
@@ -45,7 +170,6 @@ const DOCUMENT_DIR = path.join(__dirname, "documents");
 
 let embedder;
 let generator;
-let embeddingIndex;
 let docs       = []
 let embeddings = [];
 
@@ -94,6 +218,26 @@ function setEngine(conf){
     CONFIG.engine = conf;
     store.set("current-engine", CONFIG.engine)
 }
+
+async function ingestSheets(id, rows) {
+    if (!embeddingIndex) embeddingIndex = new IndexFlatL2({ dims: embeddingDim });
+
+    for (const row of rows) {
+        const text = Object.entries(row)
+                           .map(([k,v]) => `${k}: ${v}`)
+                           .join(", ");
+        const emb = await embedder(text, { pooling: "mean", normalize: true });
+        embeddings.push(Array.from(emb.data));
+        docs.push({ content: text, metadata: row });
+    }
+
+    await embeddingIndex.add(embeddings);
+
+    // Optional: persist for cache
+    fs.writeFileSync(metaPath, JSON.stringify(docs), "utf-8");
+    fs.writeFileSync(indexPath, JSON.stringify(embeddings), "utf-8");
+}
+
 async function ensureDocumentDir() {
   await fs.mkdir(DOCUMENT_DIR, { recursive: true });
 }
@@ -438,7 +582,7 @@ async function generateGroq(prompt) {
 async function generateGrok(model, query) {
     try {
         let client = createXai({ apiKey: process.env.XAI_API_KEY });
-        const { text } = await xai.generateText({
+        const { text } = await generateText({
             model:  client.responses(model),
             system: 'You are Grok, a highly intelligent, helpful AI assistant.',
             prompt: query,
@@ -479,6 +623,18 @@ function detectIntent(prompt) {
     return "text";
 }
 
+function diversify(results, key = "Genre") {
+    const seen = new Set();
+    const output = [];
+    for (const r of results) {
+        if (!seen.has(r.metadata?.[key])) {
+            seen.add(r.metadata?.[key]);
+            output.push(r);
+        }
+    }
+    return output;
+}
+
 async function sendMessage(userInput) {
     if (!embeddingIndex) {
         console.log("Initializing vector index...");
@@ -513,19 +669,25 @@ async function sendMessage(userInput) {
         }
 
         console.log("STEP 2: embedding user input");
-        const embeddingVector = await embedText(userInput); // <- numeric Float32Array
+        // STEP 2: enrich input with context variables
+        const contextVars = {
+            time: new Date().toLocaleTimeString(),
+            day: new Date().toLocaleDateString()
+        };
 
-        console.log("STEP 3: retrieving context from FAISS");
-        const retrievedDocs = retrieveTopK(embeddingVector, 10);
-        console.log("STEP 4: retrieved docs:", retrievedDocs.length);
+        const fullUserInput = `Time: ${contextVars.time}\nDay: ${contextVars.day}\nUser: ${userInput}`;
+        const embeddingVector = await embedText(fullUserInput);
 
-        const context = retrievedDocs
-            .map(d => d?.content || d?.title || "")
-            .filter(Boolean)
-            .join("\n");
+        // STEP 3: retrieve docs from FAISS
+        let retrievedDocs = retrieveTopK(embeddingVector, 10);
 
-        const fullPrompt = context
-            ? `Context:\n${context}\n\nUser:\n${userInput}\n\nRespond naturally and helpfully.`
+        // STEP 4: apply diversity filter
+        retrievedDocs = diversify(retrievedDocs, "Genre"); // or another metadata key
+
+        // STEP 5: build prompt for LLM
+        const contextText = retrievedDocs.map(d => d.content).join("\n");
+        const fullPrompt  = contextText
+            ? `Context:\n${contextText}\n\nUser:\n${userInput}\n\nRespond naturally and helpfully.`
             : `User:\n${userInput}\n\nRespond naturally and helpfully.`;
 
         console.log("STEP 5: generating response");
@@ -548,15 +710,6 @@ function setConfig(newConfig) {
     console.log("CONFIG updated:", CONFIG);
 }
 
-
-import { embedText } from "./embeddings.js";
-import { retrieveTopK } from "./backend.js";
-import { reflect, RecallMemory, RetainMemory } from "./hindsight-client.js";
-import { VestAuthClient } from './vestauth.js';
-const vest = new VestAuthClient();
-
-await vest.set(`${agent.id}-setting`, value);
-const value = await vest.get(`${agent.id}-setting`);
 /**
  * Generate a response for a specific agent, using its memory and RAG.
  *
@@ -614,13 +767,13 @@ async function generateAgentResponse(agent, input, k = 5) {
     // Generate response
     // ---------------------------
     const response = await generateResponse(agent.model, fullPrompt);
+    let resp = reflect(agent.id, response);
 
     // ---------------------------
     // Optionally store new memory
     // ---------------------------
     await RetainMemory(agent.id, response);
-
-    return response;
+    return resp; //response;
 }
 // ---------------------------
 // Exports
@@ -645,5 +798,5 @@ export  {
     createGroqClient,
     setEngine, 
     resetActiveStack,
-    loadModel
+    generateAgentResponse
 };

@@ -1,8 +1,8 @@
+import {embeddingIndex} from "./embeddings.js";
+import fs from 'fs'
 
 async function initialize() {
     await loadModels(); // load embedder & generator
-
-    let embeddingIndex;
     const currentHash = computeDocumentsHash();
     const hasCache = fs.existsSync(indexPath) &&
                      fs.existsSync(metaPath) &&

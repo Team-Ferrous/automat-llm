@@ -27,9 +27,10 @@ contextBridge.exposeInMainWorld("api", {
         dir,
         options: { mode: "chat", includeMetadata: true }
     }),
-    ingestDocuments: (paths)               => ipcRenderer.invoke("rag:ingest", paths),
-    engineIngestChats: (instanceId, files) => ipcRenderer.invoke("engine:ingest_documents", { instanceId, files }),
-    loadModel: (modelName)                 => ipcRenderer.invoke("engine:loadModel", { modelName }),
+    ingestDocuments:    (paths)              => ipcRenderer.invoke("rag:ingest", paths),
+    ingestGoogleSheets: (spreadsheetId)      => ipcRenderer.invoke("ingest-google-sheet", spreadsheetId).then(res => console.log("Ingest result:", res)).catch(err => console.error(err)),
+    engineIngestChats:  (instanceId, files)  => ipcRenderer.invoke("engine:ingest_documents", { instanceId, files }),
+    loadModel: (modelName)                   => ipcRenderer.invoke("engine:loadModel", { modelName }),
 
     // AGENT WORKFLOW
     spawnAgent: (config)                   => ipcRenderer.invoke("engine:spawnAgent", config),

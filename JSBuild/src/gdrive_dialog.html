@@ -1,0 +1,32 @@
+<body>
+  <h2>Select Google Sheets to Import</h2>
+  <form id="sheetForm">
+    <div id="fileList"></div>
+    <button type="submit">Import Selected</button>
+  </form>
+  <script>
+    const { ipcRenderer } = require('electron');
+    ipcRenderer.on('gdrive-file-list', (_, files) => {
+      const container = document.getElementById('fileList');
+      files.forEach(f => {
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = f.id;
+        cb.id = f.id;
+        const label = document.createElement('label');
+        label.htmlFor = f.id;
+        label.textContent = f.name;
+        container.appendChild(cb);
+        container.appendChild(label);
+        container.appendChild(document.createElement('br'));
+      });
+    });
+
+    document.getElementById('sheetForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const selected = Array.from(document.querySelectorAll('input[type=checkbox]:checked'))
+                            .map(cb => ({ id: cb.value, name: cb.nextSibling.textContent }));
+      ipcRenderer.send('gdrive-file-selected', selected);
+    });
+  </script>
+</body>

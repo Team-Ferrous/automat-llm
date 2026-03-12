@@ -10,15 +10,14 @@ const __dirname  = dirname(__filename);
 const require    = createRequire(import.meta.url);
 const { IndexFlatL2, Index, IndexFlatIP } = require(path.resolve(__dirname, './node_modules/faiss-node/build/Release/faiss-node'));
 
-
 // docs array must include embedding with each doc
 // Example: docs = [{ content: 'text', embedding: [0.1, ...] }, ...]
 // Initialize HNSW or Flat index (dims = embedding length)
 const embeddingDim = 384; // match your model embeddings
 let embeddingIndex = new IndexFlatL2({ type: 'HNSW', dims: embeddingDim }); //IndexFlatIP
 let docs = [
-  { content: "Hello world", embedding: [0.1, 0.2, 0.3 /* ... match embeddingDim */] },
-  { content: "Another example", embedding: [0.4, 0.5, 0.6 /* ... */] },
+  { content: "Hello world",     embedding: [0.1, 0.2, 0.3 /* ... match embeddingDim */] },
+  { content: "Another example", embedding: [0.4, 0.5, 0.6 /* ... match embeddingDim */] },
   // add more documents as needed
 ];
 let embeddings = docs.map(d => d.embedding);
