@@ -199,6 +199,8 @@ Commercial use of Automat-LLM **requires a commercial license from the authors.*
 If you would like to use Automat-LLM in a commercial product, company, or paid service, please contact:
 
 **Team Ferrous**
+Team Lead: mileslitteral@sasorizerolabs.com
+General Team Inquiry: sasorizerolabs@gmail.com
 
 Commercial licensing inquiries can be opened through GitHub issues or direct contact with the maintainers.
 
