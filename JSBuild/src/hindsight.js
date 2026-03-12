@@ -17,7 +17,7 @@ async function RecallMemory(id, abstract){
 
 // Reflect - generate response with disposition
 async function reflect(id, abstract) {
-    const answer = await client.reflect('my-bank', 'Tell me about Alice');
+    const answer = await client.reflect(id, abstract);
     console.log(answer.text);
     return answer;
 }

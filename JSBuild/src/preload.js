@@ -27,15 +27,17 @@ contextBridge.exposeInMainWorld("api", {
         dir,
         options: { mode: "chat", includeMetadata: true }
     }),
-    ingestDocuments: (paths) => ipcRenderer.invoke("rag:ingest", paths),
+    ingestDocuments: (paths)               => ipcRenderer.invoke("rag:ingest", paths),
     engineIngestChats: (instanceId, files) => ipcRenderer.invoke("engine:ingest_documents", { instanceId, files }),
-    loadModel: (modelName) => ipcRenderer.invoke("engine:loadModel", { modelName }),
+    loadModel: (modelName)                 => ipcRenderer.invoke("engine:loadModel", { modelName }),
+
     // AGENT WORKFLOW
-    spawnAgent: (config) => ipcRenderer.invoke("engine:spawnAgent", config),
-    getAgent: (id)       => ipcRenderer.invoke("engine:getAgent",       id),
-    attachAgent: (id, agent)         => ipcRenderer.invoke("engine:attachAgent", id, agent),
-    queryAgent:  (id, vector, k)      => ipcRenderer.invoke("query",              id, vector, k),
-    ingestAgentDocuments: (id, docs) => ipcRenderer.invoke("ingestDocuments", id, docs),
-    hfLogin: () => ipcRenderer.invoke('hf-login'),
-    msLogin: () => ipcRenderer.invoke('ms-login')
+    spawnAgent: (config)                   => ipcRenderer.invoke("engine:spawnAgent", config),
+    getAgent: (id)                         => ipcRenderer.invoke("engine:getAgent",       id),
+    attachAgent: (id, agent)               => ipcRenderer.invoke("engine:attachAgent", id, agent),
+    queryAgent:  (id, vector, k)           => ipcRenderer.invoke("engine:queryAgent",              id, vector, k),
+    ingestAgentDocuments: (id, docs)       => ipcRenderer.invoke("engine:ingestDocuments", id, docs),
+    generateAgentResponse: ()              => ipcRenderer.invoke("engine:generateAgentResponse", agent.model, fullPrompt),
+    hfLogin: ()                            => ipcRenderer.invoke('hf-login'),
+    msLogin: ()                            => ipcRenderer.invoke('ms-login'),
   });

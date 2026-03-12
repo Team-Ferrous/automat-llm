@@ -6,6 +6,7 @@ import { dialog }        from 'electron';
 import dotenv            from "dotenv";
 
 import OpenAI            from "openai";
+import Xai               from "xAi"
 import { pipeline      } from "@xenova/transformers";
 import { findGenerator } from './model_switcher.js'
 import { embeddingDim, embeddingIndex, embedText } from "./embeddings.js";
@@ -13,6 +14,8 @@ import { embeddingDim, embeddingIndex, embedText } from "./embeddings.js";
 import { dirname }       from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import Store from 'electron-store';
+import { error } from "node:console";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -22,8 +25,6 @@ const { IndexFlatL2 }  = require(path.resolve(__dirname, './node_modules/faiss-n
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 // main.js
-import Store from 'electron-store';
-import { error } from "node:console";
 const store = new Store();
 
 let CONFIG = {
@@ -47,6 +48,9 @@ let generator;
 let embeddingIndex;
 let docs       = []
 let embeddings = [];
+
+// Active conversation stack
+let activeConversationStack = []; // each entry: { user: string, bot: string }
 
 // ---------------------------
 // Paths
@@ -244,6 +248,8 @@ function computeDocumentsHash() {
 // ---------------------------
 async function loadModels() {
     try {
+        let hfToken = localStorage.getItem("hfToken");
+
         console.log("Loading embedding model...");
         embedder = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { token: hfToken });
         console.log("Embedding model loaded!");
@@ -432,7 +438,7 @@ async function generateGroq(prompt) {
 async function generateGrok(model, query) {
     try {
         let client = createXai({ apiKey: process.env.XAI_API_KEY });
-        const { text } = await generateText({
+        const { text } = await xai.generateText({
             model:  client.responses(model),
             system: 'You are Grok, a highly intelligent, helpful AI assistant.',
             prompt: query,
@@ -465,52 +471,76 @@ async function generateResponse(model="grok-4-1-fast-reasoning", prompt) {
 // Public API
 // ---------------------------
 function detectIntent(prompt) {
-
     const p = prompt.toLowerCase();
-
     if (p.includes("image") || p.includes("picture") || p.includes("draw"))
         return "image";
-
     if (p.includes("3d") || p.includes("model") || p.includes("sdf"))
         return "3d";
-
     return "text";
 }
 
-async function sendMessage(userInput, sessionId="default") {
-    if (!embeddingIndex) embeddingIndex = await initialize();
-
-    const convoPath = path.join(CONVO_DIR, sessionId + ".json");
-    let history = [];
-    if (fs.existsSync(convoPath)) {
-        history = JSON.parse(fs.readFileSync(convoPath, "utf-8"));
+async function sendMessage(userInput) {
+    if (!embeddingIndex) {
+        console.log("Initializing vector index...");
+        embeddingIndex = await initialize();
     }
 
-    // Append user message
-    history.push({ role: "user", content: userInput, timestamp: Date.now() });
+    try {
+        console.log("STEP 1: received message");
+        const intent = detectIntent(userInput);
+        console.log("Intent:", intent);
+        const generator = findGenerator(intent);
 
-    // Retrieve context
-    const embeddingVector = await embedText(userInput);
-    let retrievedDocs = [];
-    if (embeddingIndex && embeddingIndex.ntotal() > 0) {
-        const results = embeddingIndex.search([embeddingVector], 10);
-        retrievedDocs = results.labels.map(i => docs[i]).filter(Boolean);
+        if (generator) {
+            console.log("Routing to generator:", generator.type, generator.model);
+
+            switch (generator.type) {
+                case "image":
+                    return await runImageModel(generator.model, userInput, generator.source, generator.repo);
+                case "3d":
+                    return await run3DModel(generator.model, userInput, generator.source, generator.repo);
+                case "voice":
+                    return await runTTS(generator.model, userInput, generator.source, generator.repo);
+                case "video":
+                    return await runVideoModel(generator.model, userInput, generator.source, generator.repo);
+            }
+        }
+
+        // TEXT PIPELINE (RAG + LLM)
+        const llmModel = modelRegistry.llm[activeStack.llm];
+        if (!llmModel) {
+            throw new Error(`LLM "${activeStack.llm}" not found in registry`);
+        }
+
+        console.log("STEP 2: embedding user input");
+        const embeddingVector = await embedText(userInput); // <- numeric Float32Array
+
+        console.log("STEP 3: retrieving context from FAISS");
+        const retrievedDocs = retrieveTopK(embeddingVector, 10);
+        console.log("STEP 4: retrieved docs:", retrievedDocs.length);
+
+        const context = retrievedDocs
+            .map(d => d?.content || d?.title || "")
+            .filter(Boolean)
+            .join("\n");
+
+        const fullPrompt = context
+            ? `Context:\n${context}\n\nUser:\n${userInput}\n\nRespond naturally and helpfully.`
+            : `User:\n${userInput}\n\nRespond naturally and helpfully.`;
+
+        console.log("STEP 5: generating response");
+        return await generateResponse(llmModel.repo, fullPrompt);
+
+    } catch (err) {
+        console.error("Error generating response:", err);
+        return null;
     }
-
-    const context = retrievedDocs.map(d => d?.content || "").join("\n");
-    const convoContext = history.map(m => `${m.role}:\n${m.content}`).join("\n");
-
-    const fullPrompt = `${context ? "Context:\n" + context + "\n\n" : ""}${convoContext}\n\nRespond naturally and helpfully.`;
-
-    const response = await generateResponse(fullPrompt);
-
-    // Append assistant response
-    history.push({ role: "assistant", content: response, timestamp: Date.now() });
-    fs.writeFileSync(convoPath, JSON.stringify(history, null, 2), "utf-8");
-
-    return response;
 }
 
+// Utility to reset conversation
+function resetActiveStack() {
+    activeConversationStack = [];
+}
 
 // Allow dynamic updates from frontend
 function setConfig(newConfig) {
@@ -518,13 +548,84 @@ function setConfig(newConfig) {
     console.log("CONFIG updated:", CONFIG);
 }
 
-function loadModel(modelName){
 
+import { embedText } from "./embeddings.js";
+import { retrieveTopK } from "./backend.js";
+import { reflect, RecallMemory, RetainMemory } from "./hindsight-client.js";
+import { VestAuthClient } from './vestauth.js';
+const vest = new VestAuthClient();
+
+await vest.set(`${agent.id}-setting`, value);
+const value = await vest.get(`${agent.id}-setting`);
+/**
+ * Generate a response for a specific agent, using its memory and RAG.
+ *
+ * @param {Object} agent - { id, model, systemPrompt }
+ * @param {string} input - user input to the agent
+ * @param {number} k - number of RAG documents to retrieve
+ */
+async function generateAgentResponse(agent, input, k = 5) {
+    if (!agent || !agent.id) throw new Error("Agent must have an id");
+
+    // ---------------------------
+    // Embed the user input
+    // ---------------------------
+    const embeddingVector = await embedText(input);
+
+    // ---------------------------
+    // Retrieve context from agent-specific docs
+    // ---------------------------
+    let retrievedDocs = [];
+    if (embeddingIndex && embeddingIndex.ntotal() > 0) {
+        retrievedDocs = retrieveTopK(embeddingVector, k); // already filtered & sorted
+    }
+
+    const docContext = retrievedDocs
+        .map(d => d?.content || d?.title || "")
+        .filter(Boolean)
+        .join("\n");
+
+    // ---------------------------
+    // Recall agent’s past memories
+    // ---------------------------
+    const memory = await RecallMemory(agent.id, input);
+    const memoryContext = memory.results?.map(r => r.text).join("\n") || "";
+
+    // ---------------------------
+    // Build full prompt
+    // ---------------------------
+    const fullPrompt = `
+        System Prompt:
+        ${agent.systemPrompt || ""}
+
+        Memory:
+        ${memoryContext}
+
+        Retrieved Context:
+        ${docContext}
+
+        User Input:
+        ${input}
+
+        Respond naturally and helpfully.
+        `;
+
+    // ---------------------------
+    // Generate response
+    // ---------------------------
+    const response = await generateResponse(agent.model, fullPrompt);
+
+    // ---------------------------
+    // Optionally store new memory
+    // ---------------------------
+    await RetainMemory(agent.id, response);
+
+    return response;
 }
-
 // ---------------------------
 // Exports
 // ---------------------------
+
 export  {
     setGroqKey,
     setTemperature,
@@ -543,5 +644,6 @@ export  {
     updateCharacter,
     createGroqClient,
     setEngine, 
+    resetActiveStack,
     loadModel
 };

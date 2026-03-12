@@ -49,11 +49,6 @@ export class ModelHub {
     /* ---------------- HuggingFace ---------------- */
     async loginHuggingFace() {
         window.open("https://huggingface.co/settings/tokens", "_blank");
-        //const token = prompt("Enter your HuggingFace API token:");
-        /*if (!token) return false;
-        this.hfToken = token;
-        localStorage.setItem("hfToken", token);
-        alert("HuggingFace token saved!");*/
         return true;
     }
 
@@ -121,11 +116,6 @@ export class ModelHub {
     /* ---------------- ModelScope ---------------- */
     async loginModelScope() {
         window.open("https://modelscope.cn/", "_blank");
-        /*const token = document.getElementById("modeSelector").value; // prompt("Enter your ModelScope API token:");
-        if (!token) return false;
-        this.msToken = token;
-        localStorage.setItem("msToken", token);
-        alert("ModelScope token saved!");*/
         return true;
     }
 
@@ -171,7 +161,6 @@ export class ModelHub {
     }
 
     /* ---------------- Ollama ---------------- */
-
     setOllamaHost(host) {
         this.ollamaHost = host;
         localStorage.setItem("ollamaHost", host);
@@ -241,24 +230,6 @@ async function testHF() {
     console.log("HF models:", models.slice(0,10));
 }
 
-function HF_Login() {
-    window.open("https://huggingface.co/settings/tokens", "_blank");
-    const token = document.getElementById("modeSelector").value; //prompt("Paste your HuggingFace token:");
-
-    if (token) {
-        localStorage.setItem("hf_token", token);
-    }
-}
-
-function MS_Login() {
-
-    window.open("https://modelscope.cn/my/access/token", "_blank");
-    const token = document.getElementById("modeSelector").value; //prompt("Paste your ModelScope token:");
-    if (token) {
-        localStorage.setItem("ms_token", token);
-    }
-}
-
 const python3DModels = {
     download_model: {
         generate: async (prompt) => {
@@ -294,8 +265,33 @@ const python3DModels = {
     }
 };
 
-function findGenerator(type) {
-    return activeStack.generators.find(g => g.type === type);
+function findGenerator(intent) {
+    // Check if there’s a generator in the active stack matching the intent
+    const gen = activeStack.generators.find(g => {
+        if (intent === "3d" && g.type === "3d") return true;
+        if (intent === "image" && g.type === "image") return true;
+        if (intent === "voice" && g.type === "voice") return true;
+        if (intent === "video" && g.type === "video") return true;
+        return false;
+    });
+
+    if (!gen) return null;
+
+    // Resolve the model details from the registry
+    let registryCategory = gen.type === "3d" ? "model3d" : gen.type;
+    const modelInfo = modelRegistry[registryCategory][gen.model];
+
+    if (!modelInfo) {
+        console.warn(`Generator model "${gen.model}" not found in registry`);
+        return null;
+    }
+
+    return {
+        type: gen.type,
+        model: gen.model,
+        source: modelInfo.source,
+        repo: modelInfo.repo
+    };
 }
 
 async function generate3D(prompt) {
@@ -329,6 +325,4 @@ export {
     modelRegistry,
     findGenerator,
     runPipeline,
-    HF_Login,
-    MS_Login
 };

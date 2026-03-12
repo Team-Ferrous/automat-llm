@@ -1,8 +1,8 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import fs from "fs";
 import { Decoder }        from './decoder.js';
 import { InstanceEngine } from "./instance_engine.js";
 import { Worker }         from 'worker_threads'; // <-- important!
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import { 
     sendMessage, 
     setGroqKey, 
@@ -16,8 +16,7 @@ import {
     replicateDocument,
     mergeDocument,
     exportDocument,
-    setEngine,
-    loadModel
+    setEngine
 } from './backend.js';
 
 import { spawn } from "child_process";
@@ -33,9 +32,7 @@ let pythonServer;
 //specifically and ONLY for SPARC3D-SDF and 3d Asset Gen models in Python
 function startPythonServer() {
     const script = path.join(__dirname, "python", "sparc_server.py");
-
     pythonServer = spawn("python", [script]);
-
     pythonServer.stdout.on("data", (data) => {
         console.log(`PYTHON: ${data}`);
     });
@@ -51,7 +48,6 @@ function startPythonServer() {
 
 let mainWindow;
 let vectorStore;
-
 async function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1080,
@@ -63,11 +59,6 @@ async function createWindow() {
     });
     mainWindow.loadFile("index.html");
 }
-
-//app.whenReady().then(async () => {
-    //await initialize();   // build/load vector index FIRST
-    //await createWindow(); // then show UI
-//});
 
 function initializeWorker() {
     return new Promise((resolve, reject) => {

@@ -1,18 +1,15 @@
 import { embedText }  from "./embeddings.js"; // your embedding function
 import { VestAuthClient } from "./vestauth.js";
-const { IndexFlatL2, Index, IndexFlatIP } = './node_modules/faiss-node/build/Release/faiss-node';
+const { IndexFlatL2 } = './node_modules/faiss-node/build/Release/faiss-node';
 
-/*
-npm i -g vestauth
-
-vestauth agent init
-
-Your agent sets secrets with a simple curl endpoint:
-vestauth agent curl -X POST https://as2.dotenvx.com/set -d '{"KEY":"value"}'
-
-And your agent gets secrets with a simple curl endpoint:
-vestauth agent curl "https://as2.dotenvx.com/get?key=KEY"
-*/
+//example invocation
+/*const engine = new InstanceEngine();
+engine.spawn({
+  id: "chat-agent",
+  provider: "huggingface",
+  secretKey: "HF_TOKEN",
+  tools: ["search", "filesystem"]
+});*/
 
 //This is for the AI Agents Control Only
 class InstanceEngine {
@@ -23,64 +20,39 @@ class InstanceEngine {
   /**
    * Create a new instance with optional FAISS vector store
    */
+  async spawn(config) {
 
-async spawn(config) {
-
-  if (this.instances.has(config.id)) {
-    return { success: false, error: "Instance already exists" };
-  }
-
-  const dimension = config.embeddingDim || 1536;
-  const index = new IndexFlatL2(dimension);
-
-  // Fetch provider secret if needed
-  let providerToken = null;
-
-  if (config.secretKey) {
-    providerToken = await VestAuthClient.get(config.secretKey);
-  }
-
-  const instance = {
-    id: config.id,
-    provider: config.provider,
-    providerToken,
-    tools: config.tools,
-    mode: config.mode,
-    sessionState: {},
-    faissIndex: index,
-    agent: null,
-    createdAt: Date.now()
-  };
-
-  this.instances.set(config.id, instance);
-
-  return { success: true, instance };
-}
-
-  /*async spawn(config) {
     if (this.instances.has(config.id)) {
       return { success: false, error: "Instance already exists" };
     }
 
-    // Create a FAISS index per instance (L2 distance, 1536 dim for OpenAI embeddings)
     const dimension = config.embeddingDim || 1536;
-    const index = new faiss.IndexFlatL2(dimension);
+    const index = new IndexFlatL2(dimension);
+
+    // Fetch provider secret if needed
+    let providerToken = null;
+
+    if (config.secretKey) {
+      providerToken = await VestAuthClient.get(config.secretKey);
+    }
 
     const instance = {
       id: config.id,
       provider: config.provider,
+      providerToken,
       tools: config.tools,
       mode: config.mode,
       sessionState: {},
       faissIndex: index,
-      agent: null, // future agent placeholder
+      agent: null,
       createdAt: Date.now()
     };
 
     this.instances.set(config.id, instance);
 
     return { success: true, instance };
-  }*/
+  }
+
 
   get(id) {
     return this.instances.get(id);
@@ -134,14 +106,6 @@ async spawn(config) {
   }
 }
 
-//example invocation
-/*const engine = new InstanceEngine();
-engine.spawn({
-  id: "chat-agent",
-  provider: "huggingface",
-  secretKey: "HF_TOKEN",
-  tools: ["search", "filesystem"]
-});*/
 
 export {
  InstanceEngine

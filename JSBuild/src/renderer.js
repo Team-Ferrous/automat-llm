@@ -1,41 +1,6 @@
 // renderer.js
 import { hub } from './model_switcher.js';
 
-async function sendMessage(userInput, sessionId="default") {
-    if (!embeddingIndex) embeddingIndex = await initialize();
-
-    const convoPath = path.join(CONVO_DIR, sessionId + ".json");
-    let history = [];
-    if (fs.existsSync(convoPath)) {
-        history = JSON.parse(fs.readFileSync(convoPath, "utf-8"));
-    }
-
-    // Append user message
-    history.push({ role: "user", content: userInput, timestamp: Date.now() });
-
-    // Retrieve context
-    const embeddingVector = await embedText(userInput);
-    let retrievedDocs = [];
-    if (embeddingIndex && embeddingIndex.ntotal() > 0) {
-        const results = embeddingIndex.search([embeddingVector], 10);
-        retrievedDocs = results.labels.map(i => docs[i]).filter(Boolean);
-    }
-
-    const context = retrievedDocs.map(d => d?.content || "").join("\n");
-    const convoContext = history.map(m => `${m.role}:\n${m.content}`).join("\n");
-
-    const fullPrompt = `${context ? "Context:\n" + context + "\n\n" : ""}${convoContext}\n\nRespond naturally and helpfully.`;
-
-    const response = await generateResponse(fullPrompt);
-
-    // Append assistant response
-    history.push({ role: "assistant", content: response, timestamp: Date.now() });
-    fs.writeFileSync(convoPath, JSON.stringify(history, null, 2), "utf-8");
-
-    return response;
-}
-
-
 document.querySelectorAll("input[type='range']").forEach(slider => {
 slider.addEventListener("input", (e) => {
     const value = e.target.value;
@@ -448,89 +413,10 @@ async function runAgent(agent, input) {
     Respond as the agent.
     `;
 
-    const response = await generateResponse(prompt, agent.model);
+    const response = await window.api.generateAgentResponse(prompt, agent.model);
     return response;
 }
 
-// Add this in a <script> block or your JS file
-async function executeWorkflow() {
-const agentList = document.querySelectorAll('.agent-instance');
-const agentsMap = {}; // Map agent names -> instance IDs
-
-// 1️⃣ Create / spawn all agents
-for (const agentEl of agentList) {
-const name   = agentEl.querySelector('.agent-name').value;
-const model  = agentEl.querySelector('.agent-model').value;
-const prompt = agentEl.querySelector('.agent-prompt').value;
-
-if (!name || !model) {
-    console.warn('Skipping agent with missing name or model');
-    continue;
-}
-
-// Spawn agent via engine
-const agentInstance = await window.engine.spawnAgent({
-    name,
-    model,
-    systemPrompt: prompt
-});
-
-agentsMap[name] = agentInstance.id; // Keep track of instance IDs
-}
-
-// 2️⃣ Read workflow steps
-const steps = Array.from(document.querySelectorAll('.workflow-step')).map(step => {
-const agentName = step.querySelector('.workflow-agent').value;
-const action = step.querySelector('.workflow-action').value;
-return { agentName, action };
-});
-
-// 3️⃣ Execute steps sequentially
-for (const step of steps) {
-const agentId = agentsMap[step.agentName];
-if (!agentId) {
-    console.warn('No agent found for step:', step);
-    continue;
-}
-
-console.log(`Executing ${step.action} for agent ${step.agentName}`);
-
-// Example: different actions
-switch (step.action) {
-    case 'respond':
-        await window.engine.queryAgent(agentId, "Respond to workflow prompt", 1);
-        break;
-    case 'research':
-        // Could call a RAG or Web search function
-        await window.engine.engineIngestChats(agentId, ["Research files or data"]);
-        break;
-    case 'code':
-        // Possibly generate code
-        await window.engine.queryAgent(agentId, "Generate code snippet", 1);
-        break;
-    case 'tool':
-        console.log('Tool action not implemented yet');
-        break;
-}
-}
-
-console.log('Workflow complete!');
-}
-
-// Attach to button
-document.getElementById('start-pipeline-btn').onclick = executeWorkflow;
-
-
-function reindexWorkflow(){
-
-    const steps = document.querySelectorAll(".workflow-step");
-
-    steps.forEach((step,i)=>{
-        step.querySelector(".workflow-index").textContent = i+1;
-    });
-
-    workflowStepCounter = steps.length;
-}
 
 // --- 1. Navigation ---
 function switchTab(tabId) {
@@ -1253,18 +1139,6 @@ return { setAccent, cleanup };
 }
 
 // --- 4. UI Logic ---
-function toggleSwitch(btn) {
-    const knob = btn.querySelector('span');
-    const isActive = btn.classList.contains('bg-green-600');
-    if (isActive) {
-        btn.classList.remove('bg-green-600'); btn.classList.add('bg-gray-700');
-        knob.classList.remove('right-1'); knob.classList.add('left-1');
-    } else {
-        btn.classList.remove('bg-gray-700'); btn.classList.add('bg-green-600');
-        knob.classList.remove('left-1'); knob.classList.add('right-1');
-    }
-}
-
 function closeModal(id) {
     const modal = document.getElementById(id);
     modal.classList.add('opacity-0');
@@ -1285,15 +1159,6 @@ function showModal(title, message) {
     }, 10);
 }
 
-function saveConfiguration(){
-    showModal('Config Saved', 'Parameters Reloaded.');
-    const tempValue = document.getElementById('contextValue');
-    const contextValue = document.getElementById('tempValue');
-    const selector = document.getElementById("model-selector");
-    window.api.updateEngine({ mode: selector.value });
-    window.api.setTemperature(tempValue);
-    window.api.setContextWindowKey(contextValue);
-}
 
 async function handleChatSubmit(e) {
     e.preventDefault();
@@ -1841,71 +1706,146 @@ window.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     });
           
-    
-    async function executeWorkflow() {
+// Add this in a <script> block or your JS file
+/*async function executeWorkflow() {
+    const agentList = document.querySelectorAll('.agent-instance');
+    const agentsMap = {}; // Map agent names -> instance IDs
 
-        console.log("⚙️ Starting workflow...");
+    // 1️⃣ Create / spawn all agents
+    for (const agentEl of agentList) {
+    const name   = agentEl.querySelector('.agent-name').value;
+    const model  = agentEl.querySelector('.agent-model').value;
+    const prompt = agentEl.querySelector('.agent-prompt').value;
 
-        const steps = document.querySelectorAll(".workflow-step");
-
-        if (steps.length === 0) {
-            console.warn("No workflow steps defined.");
-            return;
-        }
-
-        let previousOutput = "";
-
-        for (let i = 0; i < steps.length; i++) {
-
-            const step = steps[i];
-
-            const agentName = step.querySelector(".workflow-agent").value;
-            const action = step.querySelector(".workflow-action").value;
-
-            console.log(`Running Step ${i + 1}:`, agentName, action);
-
-            if (!agentName) {
-                console.warn("Step skipped: no agent selected");
-                continue;
-            }
-
-            const agent = getAgentByName(agentName);
-
-            if (!agent) {
-                console.warn("Agent not found:", agentName);
-                continue;
-            }
-
-            let result = "";
-
-            switch (action) {
-
-                case "respond":
-                    result = await runAgent(agent, previousOutput);
-                    break;
-
-                case "research":
-                    result = await runResearchTool(previousOutput);
-                    break;
-
-                case "code":
-                    result = await runAgent(agent, "Write code for: " + previousOutput);
-                    break;
-
-                case "tool":
-                    result = await runAgentTool(agent, previousOutput);
-                    break;
-
-            }
-
-            previousOutput = result;
-
-            console.log(`Step ${i + 1} output:`, result);
-        }
-
-        console.log("✅ Workflow finished.");
+    if (!name || !model) {
+        console.warn('Skipping agent with missing name or model');
+        continue;
     }
 
+    // Spawn agent via engine
+    const agentInstance = await window.engine.spawnAgent({
+        name,
+        model,
+        systemPrompt: prompt
+    });
+
+    agentsMap[name] = agentInstance.id; // Keep track of instance IDs
+        }
+
+    // 2️⃣ Read workflow steps
+    const steps = Array.from(document.querySelectorAll('.workflow-step')).map(step => {
+    const agentName = step.querySelector('.workflow-agent').value;
+    const action = step.querySelector('.workflow-action').value;
+    return { agentName, action };
+    });
+
+    // 3️⃣ Execute steps sequentially
+    for (const step of steps) {
+    const agentId = agentsMap[step.agentName];
+    if (!agentId) {
+        console.warn('No agent found for step:', step);
+        continue;
+    }
+
+    console.log(`Executing ${step.action} for agent ${step.agentName}`);
+
+    // Example: different actions
+    switch (step.action) {
+        case 'respond':
+            await window.engine.queryAgent(agentId, "Respond to workflow prompt", 1);
+            break;
+        case 'research':
+            // Could call a RAG or Web search function
+            await window.engine.engineIngestChats(agentId, ["Research files or data"]);
+            break;
+        case 'code':
+            // Possibly generate code
+            await window.engine.queryAgent(agentId, "Generate code snippet", 1);
+            break;
+        case 'tool':
+            console.log('Tool action not implemented yet');
+            break;
+        }
+    }
+    console.log('Workflow complete!');
+}*/
+
+function reindexWorkflow(){
+
+    const steps = document.querySelectorAll(".workflow-step");
+
+    steps.forEach((step,i)=>{
+        step.querySelector(".workflow-index").textContent = i+1;
+    });
+
+    workflowStepCounter = steps.length;
+}
+
+async function executeWorkflow() {
+
+    console.log("⚙️ Starting workflow...");
+
+    const steps = document.querySelectorAll(".workflow-step");
+
+    if (steps.length === 0) {
+        console.warn("No workflow steps defined.");
+        return;
+    }
+
+    let previousOutput = "";
+
+    for (let i = 0; i < steps.length; i++) {
+
+        const step = steps[i];
+
+        const agentName = step.querySelector(".workflow-agent").value;
+        const action = step.querySelector(".workflow-action").value;
+
+        console.log(`Running Step ${i + 1}:`, agentName, action);
+
+        if (!agentName) {
+            console.warn("Step skipped: no agent selected");
+            continue;
+        }
+
+        const agent = getAgentByName(agentName);
+
+        if (!agent) {
+            console.warn("Agent not found:", agentName);
+            continue;
+        }
+
+        let result = "";
+
+        switch (action) {
+
+            case "respond":
+                result = await runAgent(agent, previousOutput);
+                break;
+
+            case "research":
+                result = await runResearchTool(previousOutput);
+                break;
+
+            case "code":
+                result = await runAgent(agent, "Write code for: " + previousOutput);
+                break;
+
+            case "tool":
+                result = await runAgentTool(agent, previousOutput);
+                break;
+        }
+
+        previousOutput = result;
+
+        console.log(`Step ${i + 1} output:`, result);
+    }
+
+    console.log("✅ Workflow finished.");
+}
+
+// Attach to button
+document.getElementById('start-pipeline-btn').onclick = executeWorkflow;
 // =====================================================
 // CUSTOM BG FILE INPUT
 // =====================================================
