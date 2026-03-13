@@ -35,7 +35,7 @@ git clone https://github.com/facebookresearch/faiss.git $FAISS_DIR
 cd $FAISS_DIR
 
 echo "🔧 Configuring FAISS..."
-cmake -B build \
+sudo -E cmake -B build \
     -DFAISS_ENABLE_GPU=OFF \
     -DFAISS_ENABLE_PYTHON=OFF \
     -DBUILD_TESTING=OFF \
@@ -45,7 +45,7 @@ cmake -B build \
     -DCMAKE_C_FLAGS="-fopenmp"
 
 echo "🚀 Building FAISS..."
-cmake --build build -j$(nproc)
+sudo -E cmake --build   build -j$(nproc)
 sudo -E cmake --install build
 sudo -E ldconfig
 echo "✅ FAISS installed to $INSTALL_DIR"

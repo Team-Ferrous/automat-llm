@@ -85,38 +85,6 @@ const SHEETS_TOKEN_PATH = path.join(__dirname, "sheets_token.json");
 const SHEETS_CREDENTIALS_PATH = path.join(__dirname, "sheets_credentials.json"); // from GCP
 let sheetsAuth;
 
-async function authorizeSheets() {
-    if (sheetsAuth) return sheetsAuth;
-
-    const credentials = JSON.parse(fs.readFileSync(SHEETS_CREDENTIALS_PATH, "utf-8"));
-    const { client_secret, client_id, redirect_uris } = credentials.installed;
-    const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
-
-    if (fs.existsSync(SHEETS_TOKEN_PATH)) {
-        const token = JSON.parse(fs.readFileSync(SHEETS_TOKEN_PATH, "utf-8"));
-        oAuth2Client.setCredentials(token);
-    } else {
-        const authUrl = oAuth2Client.generateAuthUrl({
-            access_type: "offline",
-            scope: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-        });
-        console.log("Authorize Google Sheets by visiting:", authUrl);
-        await open(authUrl);
-
-        // Here you’d need a simple input dialog in Electron to get the code
-        const code = await new Promise(resolve => {
-            ipcMain.once("google-sheets-code", (_, code) => resolve(code));
-        });
-
-        const { tokens } = await oAuth2Client.getToken(code);
-        oAuth2Client.setCredentials(tokens);
-        fs.writeFileSync(SHEETS_TOKEN_PATH, JSON.stringify(tokens), "utf-8");
-    }
-
-    sheetsAuth = oAuth2Client;
-    return oAuth2Client;
-}
-
 async function fetchSpreadsheet(spreadsheetId, range = "Sheet1!A:F") {
     const auth = await authorizeSheets();
     const sheets = google.sheets({ version: "v4", auth });
